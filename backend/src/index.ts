@@ -146,7 +146,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, db: Database
   }
 
   if (path === '/api/health' || path === '/health') {
-    res.writeHead(200); res.end(JSON.stringify({ status: 'ok', uptime: process.uptime() }));
+    res.writeHead(200); res.end(JSON.stringify({ status: 'ok', uptime: process.uptime(), db: (global as Record<string, unknown>).__dbType || 'memory' }));
     return;
   }
 
@@ -160,9 +160,11 @@ async function main() {
     await db.init();
     console.log('[DB] PostgreSQL connected');
     database = db;
+    (global as Record<string, unknown>).__dbType = 'postgres';
   } else {
     console.log('[DB] Using in-memory database');
     database = new InMemoryDatabase();
+    (global as Record<string, unknown>).__dbType = 'memory';
   }
 
   (global as Record<string, unknown>).__database = database;
