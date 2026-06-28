@@ -83,7 +83,5 @@ export default function BackgroundMusic({ enabled }: { enabled: boolean }) {
     }
   }, [enabled]);
 
-  return (
-    <div ref={containerRef} style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
-  );
+  return <div ref={containerRef} style={{ display: 'none' }} />;
 }

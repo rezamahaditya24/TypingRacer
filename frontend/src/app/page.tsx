@@ -225,7 +225,6 @@ export default function Home() {
         />
       )}
 
-      <BackgroundMusic enabled={musicEnabled} />
     </div>
   );
 }
