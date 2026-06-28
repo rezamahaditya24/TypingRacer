@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: dinodash-backend
+    runtime: node
+    repo: https://github.com/<USERNAME>/<REPO-NAME>
+    branch: main
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+  - type: web
+    name: dinodash-frontend
+    runtime: node
+    repo: https://github.com/<USERNAME>/<REPO-NAME>
+    branch: main
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_WS_HOST
+        value: wss://dinodash-backend.onrender.com
