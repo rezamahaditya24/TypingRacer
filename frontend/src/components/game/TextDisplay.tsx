@@ -124,8 +124,8 @@ export default function TextDisplay({
     <>
       <div
         ref={scrollRef}
-        className="relative w-full min-h-[100px] max-h-[250px] p-5 rounded-xl font-mono text-lg sm:text-xl leading-relaxed select-none overflow-y-auto"
-        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '.5px solid var(--border-color)' }}
+        className="relative w-full min-h-[100px] max-h-[250px] p-5 rounded-xl font-mono text-lg sm:text-xl leading-relaxed select-none overflow-y-auto whitespace-pre-wrap"
+        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '.5px solid var(--border-color)', wordBreak: 'break-word' }}
         onClick={() => inputRef.current?.focus()}
         aria-label={`Progress: ${charIndex} dari ${text.length} karakter`}
       >
@@ -148,8 +148,8 @@ export default function TextDisplay({
 
       {showInput && (
         <div
-          className="w-full min-h-[48px] p-3 rounded-xl font-mono text-lg sm:text-xl select-none"
-          style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--accent)', opacity: 0.8 }}
+          className="w-full min-h-[48px] p-3 rounded-xl font-mono text-lg sm:text-xl select-none whitespace-pre-wrap"
+          style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--accent)', opacity: 0.8, wordBreak: 'break-word' }}
           onClick={() => inputRef.current?.focus()}
         >
           {charIndex === 0 ? (
@@ -158,7 +158,7 @@ export default function TextDisplay({
             <>
               {text.slice(0, charIndex).split('').map((char, i) => (
                 <span key={i} style={{ color: errors.has(i) ? 'var(--wrong)' : 'var(--correct)' }}>
-                  {char === ' ' ? '\u00A0' : char}
+                  {char}
                 </span>
               ))}
               <motion.span
