@@ -65,8 +65,7 @@ export default function BackgroundMusic({ enabled }: { enabled: boolean }) {
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScript = document.getElementsByTagName('script')[0];
-      firstScript?.parentNode?.insertBefore(tag, firstScript);
+      document.head.appendChild(tag);
     }
   }, [initPlayer]);
 
