@@ -6,6 +6,7 @@ import { useRace } from '@/hooks/useRace';
 import { useSound } from '@/hooks/useSound';
 import { DinoType, RoomStatus } from '@/lib/types';
 import { randomName } from '@/lib/constants';
+import BackgroundMusic from '@/components/game/BackgroundMusic';
 import LandingView from '@/components/game/LandingView';
 import Lobby from '@/components/game/Lobby';
 import RaceView from '@/components/game/RaceView';
@@ -20,6 +21,7 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState('');
   const [isDark, setIsDark] = useState(true);
   const [themeVariant, setThemeVariant] = useState<'dark' | 'light' | 'retro' | 'neon'>('dark');
+  const [musicEnabled, setMusicEnabled] = useState(false);
   const [wpmHistory, setWpmHistory] = useState<{ time: number; wpm: number }[]>([]);
   const [ghostData, setGhostData] = useState<{ charIndex: number; timeMs: number }[] | null>(null);
   const keystrokeTimestamps = useRef<{ charIndex: number; timeMs: number }[]>([]);
@@ -41,6 +43,8 @@ export default function Home() {
       setIsDark(savedTheme !== 'light');
       const savedVariant = localStorage.getItem('dino-dash-variant') as typeof themeVariant | null;
       if (savedVariant) setThemeVariant(savedVariant);
+      const savedMusic = localStorage.getItem('dino-music');
+      if (savedMusic === '1') setMusicEnabled(true);
     } catch {}
   }, []);
 
@@ -140,6 +144,10 @@ export default function Home() {
 
   const handlePractice = () => setView('practice');
 
+  const toggleMusic = () => {
+    setMusicEnabled(p => { const next = !p; try { localStorage.setItem('dino-music', next ? '1' : '0'); } catch {} return next; });
+  };
+
   const toggleTheme = () => {
     const next = !isDark;
     setIsDark(next);
@@ -167,6 +175,7 @@ export default function Home() {
             </button>
           )}
           <button onClick={sound.toggle} className="text-lg">{sound.soundEnabled ? '🔊' : '🔇'}</button>
+          <button onClick={toggleMusic} className="text-lg" title={musicEnabled ? 'Matikan musik' : 'Putar musik'} style={{ opacity: musicEnabled ? 1 : 0.4 }}>🎵</button>
           <button onClick={toggleTheme} className="text-lg">{isDark ? '☀️' : '🌙'}</button>
         </div>
       </nav>
@@ -215,6 +224,8 @@ export default function Home() {
           wpmHistory={wpmHistory}
         />
       )}
+
+      <BackgroundMusic enabled={musicEnabled} />
     </div>
   );
 }

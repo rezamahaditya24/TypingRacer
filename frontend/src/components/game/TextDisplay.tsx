@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, type RefObject } from 'react';
+import { useState, useCallback, useRef, useEffect, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 
 export default function TextDisplay({
@@ -20,6 +20,13 @@ export default function TextDisplay({
   const [pulsedWords, setPulsedWords] = useState<Set<number>>(new Set());
   const [shakeChar, setShakeChar] = useState<number | null>(null);
   const prevErrorsSize = useRef(errors.size);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const el = document.getElementById(`tc-${charIndex}`);
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [charIndex]);
 
   const currentWordIndex = useCallback((pos: number) => {
     const before = text.slice(0, pos);
@@ -80,7 +87,7 @@ export default function TextDisplay({
           }
 
           chars.push(
-            <span key={j} style={{
+            <span key={j} id={`tc-${j}`} style={{
               color, background: bg,
               borderRadius: 2, padding: '0 1px',
               borderBottom: j === charIndex ? `2px solid var(--accent)` : isCurrentWord && !isTyped ? '1px solid var(--accent-dim)' : 'none',
@@ -100,7 +107,8 @@ export default function TextDisplay({
   return (
     <>
       <div
-        className="relative w-full min-h-[100px] p-5 rounded-xl font-mono text-lg sm:text-xl leading-relaxed select-none overflow-hidden"
+        ref={scrollRef}
+        className="relative w-full min-h-[100px] max-h-[250px] p-5 rounded-xl font-mono text-lg sm:text-xl leading-relaxed select-none overflow-y-auto"
         style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '.5px solid var(--border-color)' }}
         onClick={() => inputRef.current?.focus()}
         aria-label={`Progress: ${charIndex} dari ${text.length} karakter`}
