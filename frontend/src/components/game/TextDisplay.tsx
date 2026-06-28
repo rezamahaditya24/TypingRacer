@@ -21,6 +21,7 @@ export default function TextDisplay({
   const [shakeChar, setShakeChar] = useState<number | null>(null);
   const prevErrorsSize = useRef(errors.size);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingPulses = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -28,17 +29,34 @@ export default function TextDisplay({
     if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [charIndex]);
 
+  useEffect(() => {
+    if (errors.size > prevErrorsSize.current) {
+      prevErrorsSize.current = errors.size;
+      onCharError?.();
+      setShakeChar(charIndex);
+      const t = setTimeout(() => setShakeChar(null), 150);
+      return () => clearTimeout(t);
+    }
+  }, [errors.size, charIndex, onCharError]);
+
+  useEffect(() => {
+    if (pendingPulses.current.size === 0) return;
+    const words = new Set(pendingPulses.current);
+    pendingPulses.current = new Set();
+    const t = setTimeout(() => {
+      setPulsedWords(prev => {
+        const next = new Set(prev);
+        words.forEach(w => next.delete(w));
+        return next;
+      });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [charIndex]);
+
   const currentWordIndex = useCallback((pos: number) => {
     const before = text.slice(0, pos);
     return before.split(' ').length - 1;
   }, [text]);
-
-  if (errors.size > prevErrorsSize.current) {
-    prevErrorsSize.current = errors.size;
-    onCharError?.();
-    setShakeChar(charIndex);
-    setTimeout(() => setShakeChar(null), 150);
-  }
 
   const renderText = () => {
     const chars: any[] = [];
@@ -53,10 +71,8 @@ export default function TextDisplay({
         if (isCompleted && wordEnd > wordStart) {
           const needPulse = charIndex === wordEnd + 1 && wordEnd < text.length;
           if (needPulse && !pulsedWords.has(wordIdx)) {
+            pendingPulses.current.add(wordIdx);
             setPulsedWords(prev => new Set(prev).add(wordIdx));
-            setTimeout(() => {
-              setPulsedWords(prev => { const s = new Set(prev); s.delete(wordIdx); return s; });
-            }, 600);
           }
         }
 

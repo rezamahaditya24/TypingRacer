@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 declare global {
   interface Window {
-    YT: {
+    YT?: {
       Player: any;
       PlayerState: { ENDED: number };
     };
@@ -15,71 +15,75 @@ declare global {
 const YT_ID = 'JJCFQtTPq_8';
 
 export default function BackgroundMusic({ enabled }: { enabled: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
-  const apiReadyRef = useRef(false);
-
-  const initPlayer = useCallback(() => {
-    if (!apiReadyRef.current || !window.YT) return;
-    if (playerRef.current) return;
-
-    const div = document.getElementById('yt-player');
-    if (!div) return;
-
-    playerRef.current = new window.YT.Player('yt-player', {
-      videoId: YT_ID,
-      height: '1',
-      width: '1',
-      playerVars: {
-        autoplay: 0,
-        controls: 0,
-        loop: 1,
-        playlist: YT_ID,
-        enablejsapi: 1,
-      },
-      events: {
-        onReady: (event: any) => {
-          event.target.setVolume(20);
-          if (enabled) event.target.playVideo();
-        },
-        onStateChange: (event: any) => {
-          if (window.YT.PlayerState && event.data === window.YT.PlayerState.ENDED) {
-            event.target.playVideo();
-          }
-        },
-      },
-    });
-  }, [enabled]);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (typeof window.YT !== 'undefined' && window.YT.Player) {
-      apiReadyRef.current = true;
-      initPlayer();
+    if (initialized.current) return;
+
+    const onReady = () => {
+      if (!window.YT?.Player || !containerRef.current) return;
+      if (playerRef.current) return;
+      initialized.current = true;
+
+      playerRef.current = new window.YT.Player(containerRef.current, {
+        videoId: YT_ID,
+        height: '1',
+        width: '1',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          loop: 1,
+          playlist: YT_ID,
+          enablejsapi: 1,
+        },
+        events: {
+          onReady: (event: any) => {
+            event.target.setVolume(20);
+            if (enabled) event.target.playVideo();
+          },
+          onStateChange: (event: any) => {
+            if (window.YT?.PlayerState && event.data === window.YT.PlayerState.ENDED) {
+              event.target.playVideo();
+            }
+          },
+        },
+      });
+    };
+
+    if (window.YT?.Player) {
+      onReady();
       return;
     }
 
-    window.onYouTubeIframeAPIReady = () => {
-      apiReadyRef.current = true;
-      initPlayer();
-    };
+    window.onYouTubeIframeAPIReady = onReady;
 
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       document.head.appendChild(tag);
     }
-  }, [initPlayer]);
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+        initialized.current = false;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!playerRef.current) return;
     if (enabled) {
-      playerRef.current.unMute();
-      playerRef.current.playVideo();
+      try { playerRef.current.unMute(); playerRef.current.playVideo(); } catch {}
     } else {
-      playerRef.current.pauseVideo();
+      try { playerRef.current.pauseVideo(); } catch {}
     }
   }, [enabled]);
 
   return (
-    <div id="yt-player" style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
+    <div ref={containerRef} style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
   );
 }
