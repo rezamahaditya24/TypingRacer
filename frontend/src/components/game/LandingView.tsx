@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { DinoType } from '@/lib/types';
 import { DINO_LIST, DINO_COLORS } from '@/lib/constants';
 
-export default function LandingView({ name, setName, selectedDino, setSelectedDino, language, setLanguage, joinCode, setJoinCode, onCreateRoom, onJoinRoom, onOpenLeaderboard, onPractice, error }: {
+export default function LandingView({ name, setName, selectedDino, setSelectedDino, language, setLanguage, joinCode, setJoinCode, onCreateRoom, onJoinRoom, onOpenLeaderboard, onPractice, error, onlineCount }: {
   name: string; setName: (v: string) => void;
   selectedDino: DinoType; setSelectedDino: (v: DinoType) => void;
   language: string; setLanguage: (v: 'id' | 'en') => void;
@@ -12,6 +12,7 @@ export default function LandingView({ name, setName, selectedDino, setSelectedDi
   onCreateRoom: () => void; onJoinRoom: () => void;
   onOpenLeaderboard: () => void; onPractice: () => void;
   error: string | null;
+  onlineCount: number;
 }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[85vh] text-center px-4">
@@ -23,7 +24,7 @@ export default function LandingView({ name, setName, selectedDino, setSelectedDi
         style={{ background: 'var(--bg-tertiary)', border: '.5px solid var(--border-color)', color: 'var(--text-muted)' }}
       >
         <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'var(--correct)' }} />
-        247 pemain sedang balapan
+        {onlineCount} pemain sedang daring
       </motion.div>
 
       {/* Main title */}

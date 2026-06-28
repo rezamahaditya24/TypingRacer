@@ -1,4 +1,4 @@
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { RoomManager } from './services/RoomManager';
 import { Database, InMemoryDatabase } from './services/Database';
@@ -110,9 +110,22 @@ async function main() {
 
   const wss = new WebSocketServer({ server: httpServer, path: undefined });
 
+  function broadcastOnlineCount() {
+    const count = wss.clients.size;
+    const msg = JSON.stringify({ type: 'online_count', payload: { count } });
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) client.send(msg);
+    });
+  }
+
   wss.on('connection', (ws) => {
     console.log('[WS] Client connected');
+    broadcastOnlineCount();
     handleConnection(ws, roomManager, database);
+
+    ws.on('close', () => {
+      setTimeout(broadcastOnlineCount, 100);
+    });
   });
 
   httpServer.listen(PORT, () => {

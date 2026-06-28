@@ -76,6 +76,7 @@ export interface ServerToClient {
   player_left: {
     id: string;
   };
+  online_count: { count: number };
 }
 
 export interface ClientToServer {

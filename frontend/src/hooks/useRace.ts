@@ -37,6 +37,7 @@ export function useRace() {
   const [error, setError] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [playerHistory, setPlayerHistory] = useState<PlayerHistoryEntry[]>([]);
+  const [onlineCount, setOnlineCount] = useState(0);
 
   const handleMessage = useCallback((data: { type: string; payload: Record<string, unknown> }) => {
     const { type, payload } = data;
@@ -106,6 +107,10 @@ export function useRace() {
         setPlayerHistory(payload.history as PlayerHistoryEntry[]);
         break;
       }
+      case 'online_count': {
+        setOnlineCount(payload.count as number);
+        break;
+      }
       case 'error': {
         setError(payload.message as string);
         break;
@@ -126,12 +131,13 @@ export function useRace() {
     setError(null);
     setLeaderboard([]);
     setPlayerHistory([]);
+    setOnlineCount(0);
   }, []);
 
   return {
     roomId, playerId, players, text, hostId, status,
     countdownSec, results, startedAt, error,
-    leaderboard, playerHistory,
+    leaderboard, playerHistory, onlineCount,
     setError, handleMessage, reset,
   };
 }

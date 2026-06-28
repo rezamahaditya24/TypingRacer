@@ -56,9 +56,9 @@ export default function Home() {
       const savedRoom = localStorage.getItem('dino-room');
       if (savedRoom) {
         pendingRejoinRef.current = savedRoom;
-        ws.connect();
       }
     } catch {}
+    ws.connect();
   }, []);
 
   useEffect(() => {
@@ -239,6 +239,7 @@ export default function Home() {
           onOpenLeaderboard={handleOpenLeaderboard}
           onPractice={handlePractice}
           error={race.error}
+          onlineCount={race.onlineCount}
         />
       )}
       {view === 'leaderboard' && (
