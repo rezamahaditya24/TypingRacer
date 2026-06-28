@@ -313,7 +313,7 @@ function handleGetPublicRooms(ws: WebSocket, roomManager: RoomManager): void {
 
 const raceEndedRooms = new Set<string>();
 
-function endRace(roomManager: RoomManager, roomId: string): void {
+async function endRace(roomManager: RoomManager, roomId: string): Promise<void> {
   if (raceEndedRooms.has(roomId)) return;
   raceEndedRooms.add(roomId);
 
@@ -334,25 +334,6 @@ function endRace(roomManager: RoomManager, roomId: string): void {
     };
   });
 
-  if (db) {
-    db.saveRace({
-      id: uuidv4(),
-      roomId: room.id,
-      textId: room.textId,
-      startedAt: room.startedAt || Date.now(),
-      players: playerRecords,
-    });
-
-    for (const r of playerRecords) {
-      for (const [c, a] of wsAuth) {
-        if (roomManager.getPlayerIdByWsSafe(c) === r.playerId) {
-          db.addXp(a.userId, r.xpEarned);
-          break;
-        }
-      }
-    }
-  }
-
   broadcastToRoom(roomManager, roomId, {
     type: 'race_end',
     payload: {
@@ -362,6 +343,29 @@ function endRace(roomManager: RoomManager, roomId: string): void {
       })),
     },
   });
+
+  if (db) {
+    try {
+      await db.saveRace({
+        id: uuidv4(),
+        roomId: room.id,
+        textId: room.textId,
+        startedAt: room.startedAt || Date.now(),
+        players: playerRecords,
+      });
+
+      for (const r of playerRecords) {
+        for (const [c, a] of wsAuth) {
+          if (roomManager.getPlayerIdByWsSafe(c) === r.playerId) {
+            db.addXp(a.userId, r.xpEarned);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[endRace] Failed to save race:', e);
+    }
+  }
 
   setTimeout(() => raceEndedRooms.delete(roomId), 10000);
 }
