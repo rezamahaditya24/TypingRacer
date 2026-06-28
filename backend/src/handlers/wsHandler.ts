@@ -107,6 +107,7 @@ async function handleSignup(ws: WebSocket, database: Database, payload: { userna
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await database.createUser(username, passwordHash);
     const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    wsAuth.set(ws, { userId: user.id, username: user.username });
     sendToClient(ws, {
       type: 'auth_ok',
       payload: { token, userId: user.id, username: user.username, xp: 0, level: 1 },

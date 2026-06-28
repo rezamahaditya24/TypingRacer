@@ -6,7 +6,7 @@ export class PostgresDatabase implements Database {
   private pool: InstanceType<typeof Pool>;
 
   constructor(connectionString: string) {
-    this.pool = new Pool({ connectionString, max: 10 });
+    this.pool = new Pool({ connectionString, max: 10, ssl: { rejectUnauthorized: false } });
   }
 
   async init(): Promise<void> {
