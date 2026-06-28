@@ -16,6 +16,7 @@ export interface Player {
 export type DinoType = 't-rex' | 'triceratops' | 'raptor' | 'stegosaurus' | 'brontosaurus';
 
 export type RoomStatus = 'waiting' | 'countdown' | 'racing' | 'finished';
+export type Language = 'id' | 'en';
 
 export interface Room {
   id: string;
@@ -26,6 +27,7 @@ export interface Room {
   textId: string;
   startedAt: number | null;
   countdownEndsAt: number | null;
+  language: Language;
 }
 
 export interface ServerToClient {
@@ -77,7 +79,7 @@ export interface ServerToClient {
 }
 
 export interface ClientToServer {
-  join_room: { roomId: string; name: string; dino: DinoType };
+  join_room: { roomId: string; name: string; dino: DinoType; language?: Language };
   progress: { charIndex: number };
   finish: {};
   start_race: {};

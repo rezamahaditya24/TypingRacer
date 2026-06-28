@@ -1,4 +1,5 @@
 export type DinoType = 't-rex' | 'triceratops' | 'raptor' | 'stegosaurus' | 'brontosaurus';
+export type Language = 'id' | 'en';
 
 export type RoomStatus = 'waiting' | 'countdown' | 'racing' | 'finished';
 

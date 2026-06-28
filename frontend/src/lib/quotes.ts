@@ -47,3 +47,9 @@ export const PRACTICE_QUOTES: Quote[] = [
 export function getRandomQuote(): Quote {
   return PRACTICE_QUOTES[Math.floor(Math.random() * PRACTICE_QUOTES.length)];
 }
+
+export function getRandomQuoteByLanguage(lang: 'id' | 'en'): Quote {
+  const filtered = PRACTICE_QUOTES.filter(q => q.language === lang);
+  const pool = filtered.length > 0 ? filtered : PRACTICE_QUOTES;
+  return pool[Math.floor(Math.random() * pool.length)];
+}

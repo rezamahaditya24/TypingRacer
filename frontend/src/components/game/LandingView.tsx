@@ -4,9 +4,10 @@ import { motion } from 'framer-motion';
 import { DinoType } from '@/lib/types';
 import { DINO_LIST, DINO_COLORS } from '@/lib/constants';
 
-export default function LandingView({ name, setName, selectedDino, setSelectedDino, joinCode, setJoinCode, onCreateRoom, onJoinRoom, onOpenLeaderboard, onPractice, error }: {
+export default function LandingView({ name, setName, selectedDino, setSelectedDino, language, setLanguage, joinCode, setJoinCode, onCreateRoom, onJoinRoom, onOpenLeaderboard, onPractice, error }: {
   name: string; setName: (v: string) => void;
   selectedDino: DinoType; setSelectedDino: (v: DinoType) => void;
+  language: string; setLanguage: (v: 'id' | 'en') => void;
   joinCode: string; setJoinCode: (v: string) => void;
   onCreateRoom: () => void; onJoinRoom: () => void;
   onOpenLeaderboard: () => void; onPractice: () => void;
@@ -113,6 +114,26 @@ export default function LandingView({ name, setName, selectedDino, setSelectedDi
                 <div className="text-lg">{d.emoji}</div>
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="text-[10px] font-sans font-bold" style={{ color: 'var(--text-muted)' }}>BAHASA</label>
+          <div className="flex gap-2 mt-1">
+            <button onClick={() => setLanguage('id')}
+              className="flex-1 p-2 rounded-lg text-sm font-medium transition-all"
+              style={{ background: language === 'id' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: language === 'id' ? '#0d1117' : 'var(--text-primary)',
+                border: language === 'id' ? 'none' : '.5px solid var(--border-color)' }}>
+              🇮🇩 Indonesia
+            </button>
+            <button onClick={() => setLanguage('en')}
+              className="flex-1 p-2 rounded-lg text-sm font-medium transition-all"
+              style={{ background: language === 'en' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: language === 'en' ? '#0d1117' : 'var(--text-primary)',
+                border: language === 'en' ? 'none' : '.5px solid var(--border-color)' }}>
+              🇬🇧 English
+            </button>
           </div>
         </div>
 

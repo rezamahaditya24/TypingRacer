@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { PRACTICE_QUOTES, getRandomQuote } from '@/lib/quotes';
+import { getRandomQuoteByLanguage } from '@/lib/quotes';
+import { Language } from '@/lib/types';
 import TextDisplay from './TextDisplay';
 
-export default function PracticeView({ onBack, onCorrectKey, onWrongKey }: {
+export default function PracticeView({ onBack, onCorrectKey, onWrongKey, language }: {
   onBack: () => void;
   onCorrectKey?: () => void;
   onWrongKey?: () => void;
+  language: Language;
 }) {
-  const [text] = useState(() => (getRandomQuote ? getRandomQuote() : PRACTICE_QUOTES[0]).text);
+  const [text, setText] = useState(() => getRandomQuoteByLanguage(language).text);
   const [charIndex, setCharIndex] = useState(0);
   const [errors, setErrors] = useState<Set<number>>(new Set());
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -106,7 +108,7 @@ export default function PracticeView({ onBack, onCorrectKey, onWrongKey }: {
           ))}
         </div>
         <div className="flex gap-3">
-          <button onClick={() => { setCharIndex(0); setErrors(new Set()); setStartTime(null); setFinished(false); setWpmHistory([]); }}
+          <button onClick={() => { setText(getRandomQuoteByLanguage(language).text); setCharIndex(0); setErrors(new Set()); setStartTime(null); setFinished(false); setWpmHistory([]); }}
             className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105"
             style={{ background: 'var(--teal)', color: '#0E1116' }}>
             🔄 Coba Lagi

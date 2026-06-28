@@ -71,7 +71,7 @@ export function handleConnection(ws: WebSocket, roomManager: RoomManager, databa
 }
 
 function handleJoinRoom(ws: WebSocket, roomManager: RoomManager, payload: ClientToServer['join_room']): void {
-  let { roomId, name, dino } = payload;
+  let { roomId, name, dino, language } = payload;
   const playerId = roomManager.getPlayerIdByWsSafe(ws)!;
 
   if (!name || name.trim().length === 0) {
@@ -83,8 +83,12 @@ function handleJoinRoom(ws: WebSocket, roomManager: RoomManager, payload: Client
     dino = validDinos[Math.floor(Math.random() * validDinos.length)];
   }
 
+  if (language !== 'id' && language !== 'en') {
+    language = 'en';
+  }
+
   if (roomId === 'new') {
-    roomId = roomManager.createRoom(ws, playerId, name, dino);
+    roomId = roomManager.createRoom(ws, playerId, name, dino, language);
 
     sendToClient(ws, {
       type: 'room_state',
@@ -236,9 +240,11 @@ function handleResetRace(ws: WebSocket, roomManager: RoomManager): void {
     return;
   }
 
-  const quoteIndex = Math.floor(Math.random() * 1000);
   const quotes = require('../data/quotes.json');
-  const quote = quotes[quoteIndex % quotes.length];
+  const lang = room.language || 'en';
+  const filtered = quotes.filter((q: any) => q.language === lang);
+  const pool = filtered.length > 0 ? filtered : quotes;
+  const quote = pool[Math.floor(Math.random() * pool.length)];
 
   room.text = quote.text;
   room.textId = quote.id;

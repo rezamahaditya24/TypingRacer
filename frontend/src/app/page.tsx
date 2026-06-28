@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useRace } from '@/hooks/useRace';
 import { useSound } from '@/hooks/useSound';
-import { DinoType, RoomStatus } from '@/lib/types';
+import { DinoType, RoomStatus, Language } from '@/lib/types';
 import { randomName } from '@/lib/constants';
 import BackgroundMusic from '@/components/game/BackgroundMusic';
 import LandingView from '@/components/game/LandingView';
@@ -21,11 +21,13 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState('');
   const [isDark, setIsDark] = useState(true);
   const [themeVariant, setThemeVariant] = useState<'dark' | 'light' | 'retro' | 'neon'>('dark');
+  const [language, setLanguage] = useState<Language>('id');
   const [musicEnabled, setMusicEnabled] = useState(false);
   const [wpmHistory, setWpmHistory] = useState<{ time: number; wpm: number }[]>([]);
   const [ghostData, setGhostData] = useState<{ charIndex: number; timeMs: number }[] | null>(null);
   const keystrokeTimestamps = useRef<{ charIndex: number; timeMs: number }[]>([]);
   const wpmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingRejoinRef = useRef<string | null>(null);
 
   const sound = useSound();
 
@@ -45,6 +47,17 @@ export default function Home() {
       if (savedVariant) setThemeVariant(savedVariant);
       const savedMusic = localStorage.getItem('dino-music');
       if (savedMusic === '1') setMusicEnabled(true);
+      const savedName = localStorage.getItem('dino-name');
+      if (savedName) setName(savedName);
+      const savedDino = localStorage.getItem('dino-dino') as DinoType | null;
+      if (savedDino) setSelectedDino(savedDino);
+      const savedLang = localStorage.getItem('dino-language') as Language | null;
+      if (savedLang === 'id' || savedLang === 'en') setLanguage(savedLang);
+      const savedRoom = localStorage.getItem('dino-room');
+      if (savedRoom) {
+        pendingRejoinRef.current = savedRoom;
+        ws.connect();
+      }
     } catch {}
   }, []);
 
@@ -106,14 +119,43 @@ export default function Home() {
     prevStatusRef.current = race.status;
   }, [race.status, sound]);
 
+  useEffect(() => {
+    if (ws.connected && pendingRejoinRef.current) {
+      const roomId = pendingRejoinRef.current;
+      pendingRejoinRef.current = null;
+      ws.send('join_room', { roomId, name, dino: selectedDino, language });
+      setView('lobby');
+    }
+  }, [ws.connected]);
+
   const sendJoin = useCallback((roomId: string) => {
-    ws.send('join_room', { roomId, name, dino: selectedDino });
-  }, [ws.send, name, selectedDino]);
+    ws.send('join_room', { roomId, name, dino: selectedDino, language });
+  }, [ws.send, name, selectedDino, language]);
 
   const waitConnect = (cb: () => void) => {
     const i = setInterval(() => { if (ws.ws.current?.readyState === WebSocket.OPEN) { clearInterval(i); cb(); } }, 100);
     setTimeout(() => clearInterval(i), 5000);
   };
+
+  useEffect(() => {
+    try { localStorage.setItem('dino-name', name); } catch {}
+  }, [name]);
+
+  useEffect(() => {
+    try { localStorage.setItem('dino-dino', selectedDino); } catch {}
+  }, [selectedDino]);
+
+  useEffect(() => {
+    try { localStorage.setItem('dino-language', language); } catch {}
+  }, [language]);
+
+  useEffect(() => {
+    if (race.roomId) {
+      try { localStorage.setItem('dino-room', race.roomId); } catch {}
+    } else {
+      try { localStorage.removeItem('dino-room'); } catch {}
+    }
+  }, [race.roomId]);
 
   const handleCreateRoom = () => {
     if (!ws.connected) { ws.connect(); waitConnect(() => sendJoin('new')); }
@@ -165,9 +207,16 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col" style={{ background: 'var(--bg)' }}>
       <nav className="flex items-center justify-between p-4 gap-2">
-        <button onClick={() => { race.reset(); ws.disconnect(); setView('landing'); }} className="font-bold font-sans text-lg" style={{ color: 'var(--amber)' }}>
-          🦕 Dino Dash
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => { race.reset(); ws.disconnect(); setView('landing'); }} className="font-bold font-sans text-lg" style={{ color: 'var(--amber)' }}>
+            🦕 Dino Dash
+          </button>
+          {view !== 'landing' && (
+            <button onClick={() => { setView('landing'); }} className="text-sm font-sans" style={{ color: 'var(--text-muted)' }}>
+              ← Kembali
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {race.status === 'waiting' && race.roomId && (
             <button onClick={() => navigator.clipboard.writeText(race.roomId || '')} className="text-xs font-mono underline" style={{ color: 'var(--teal)' }}>
@@ -184,6 +233,7 @@ export default function Home() {
         <LandingView
           name={name} setName={setName}
           selectedDino={selectedDino} setSelectedDino={setSelectedDino}
+          language={language} setLanguage={setLanguage}
           joinCode={joinCode} setJoinCode={setJoinCode}
           onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom}
           onOpenLeaderboard={handleOpenLeaderboard}
@@ -195,7 +245,7 @@ export default function Home() {
         <Leaderboard race={race} ws={ws} onBack={() => setView('landing')} />
       )}
       {view === 'practice' && (
-        <PracticeView onBack={() => setView('landing')} onCorrectKey={sound.keyClick} onWrongKey={sound.errorBuzz} />
+        <PracticeView onBack={() => setView('landing')} onCorrectKey={sound.keyClick} onWrongKey={sound.errorBuzz} language={language} />
       )}
       {view === 'lobby' && (
         <Lobby
@@ -225,6 +275,7 @@ export default function Home() {
         />
       )}
 
+      <BackgroundMusic enabled={musicEnabled} />
     </div>
   );
 }

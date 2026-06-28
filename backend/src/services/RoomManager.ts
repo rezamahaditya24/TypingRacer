@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { WebSocket } from 'ws';
-import { Player, Room, RoomStatus, DinoType } from '../types';
+import { Player, Room, RoomStatus, DinoType, Language } from '../types';
 import quotes from '../data/quotes.json';
 
 export class RoomManager {
@@ -18,7 +18,7 @@ export class RoomManager {
     return id;
   }
 
-  createRoom(hostWs: WebSocket, hostId: string, name: string, dino: DinoType): string {
+  createRoom(hostWs: WebSocket, hostId: string, name: string, dino: DinoType, language: Language = 'en'): string {
     const roomId = this.generateRoomId();
     const player: Player = {
       id: hostId,
@@ -44,6 +44,7 @@ export class RoomManager {
       textId: '',
       startedAt: null,
       countdownEndsAt: null,
+      language,
     };
 
     this.rooms.set(roomId, room);
@@ -169,7 +170,10 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room || (room.status !== 'waiting' && room.status !== 'finished')) return false;
 
-    const quote = quotes[Math.floor(Math.random() * quotes.length)];
+    const lang = room.language || 'en';
+    const filtered = (quotes as any[]).filter(q => q.language === lang);
+    const pool = filtered.length > 0 ? filtered : quotes;
+    const quote = pool[Math.floor(Math.random() * pool.length)];
     room.text = quote.text;
     room.textId = quote.id;
     room.status = 'countdown';
