@@ -13,6 +13,9 @@ import RaceView from '@/components/game/RaceView';
 import ResultsScreen from '@/components/game/ResultsScreen';
 import PracticeView from '@/components/game/PracticeView';
 import Leaderboard from '@/components/ui/Leaderboard';
+import AuthForm from '@/components/ui/AuthForm';
+
+const API_HOST = (process.env.NEXT_PUBLIC_WS_HOST || 'ws://localhost:3001').replace(/^ws/, 'http');
 
 export default function Home() {
   const [view, setView] = useState<'landing' | 'lobby' | 'racing' | 'results' | 'leaderboard' | 'practice'>('landing');
@@ -25,6 +28,11 @@ export default function Home() {
   const [musicEnabled, setMusicEnabled] = useState(false);
   const [wpmHistory, setWpmHistory] = useState<{ time: number; wpm: number }[]>([]);
   const [ghostData, setGhostData] = useState<{ charIndex: number; timeMs: number }[] | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<{ id: string; username: string } | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const keystrokeTimestamps = useRef<{ charIndex: number; timeMs: number }[]>([]);
   const wpmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingRejoinRef = useRef<string | null>(null);
@@ -35,6 +43,12 @@ export default function Home() {
   const prevStatusRef = useRef<RoomStatus>('waiting');
   const ws = useWebSocket({
     onMessage: useCallback((data) => {
+      if (data.type === 'auth_ok') {
+        const p = data.payload as { userId: string; username: string };
+        setUser({ id: p.userId, username: p.username });
+        setAuthLoading(false);
+        return;
+      }
       race.handleMessage(data);
     }, [race.handleMessage]),
   });
@@ -56,6 +70,15 @@ export default function Home() {
       const savedRoom = localStorage.getItem('dino-room');
       if (savedRoom) {
         pendingRejoinRef.current = savedRoom;
+      }
+      const savedToken = localStorage.getItem('dino-token');
+      if (savedToken) {
+        setToken(savedToken);
+        fetch(`${API_HOST}/api/me`, { headers: { Authorization: `Bearer ${savedToken}` } })
+          .then(r => r.json()).then(data => {
+            if (data.user) setUser(data.user);
+            else { localStorage.removeItem('dino-token'); setToken(null); }
+          }).catch(() => {});
       }
     } catch {}
     ws.connect();
@@ -120,11 +143,14 @@ export default function Home() {
   }, [race.status, sound]);
 
   useEffect(() => {
-    if (ws.connected && pendingRejoinRef.current) {
-      const roomId = pendingRejoinRef.current;
-      pendingRejoinRef.current = null;
-      ws.send('join_room', { roomId, name, dino: selectedDino, language });
-      setView('lobby');
+    if (ws.connected) {
+      if (token) ws.send('auth', { token });
+      if (pendingRejoinRef.current) {
+        const roomId = pendingRejoinRef.current;
+        pendingRejoinRef.current = null;
+        ws.send('join_room', { roomId, name, dino: selectedDino, language });
+        setView('lobby');
+      }
     }
   }, [ws.connected]);
 
@@ -161,6 +187,48 @@ export default function Home() {
     if (!ws.connected) { ws.connect(); waitConnect(() => sendJoin('new')); }
     else sendJoin('new');
     setView('lobby');
+  };
+
+  const handleLogin = async (username: string, password: string) => {
+    setAuthLoading(true); setAuthError(null);
+    try {
+      const r = await fetch(`${API_HOST}/api/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setAuthError(data.error || 'Gagal masuk'); setAuthLoading(false); return; }
+      setToken(data.token);
+      setUser(data.user);
+      setShowAuth(false);
+      try { localStorage.setItem('dino-token', data.token); } catch {}
+      if (ws.connected) ws.send('auth', { token: data.token });
+    } catch { setAuthError('Gagal terhubung ke server'); }
+    setAuthLoading(false);
+  };
+
+  const handleSignup = async (username: string, password: string) => {
+    setAuthLoading(true); setAuthError(null);
+    try {
+      const r = await fetch(`${API_HOST}/api/signup`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setAuthError(data.error || 'Gagal daftar'); setAuthLoading(false); return; }
+      setToken(data.token);
+      setUser(data.user);
+      setShowAuth(false);
+      try { localStorage.setItem('dino-token', data.token); } catch {}
+      if (ws.connected) ws.send('auth', { token: data.token });
+    } catch { setAuthError('Gagal terhubung ke server'); }
+    setAuthLoading(false);
+  };
+
+  const handleLogout = () => {
+    setToken(null);
+    setUser(null);
+    try { localStorage.removeItem('dino-token'); } catch {}
   };
 
   const handleJoinRoom = () => {
@@ -223,11 +291,32 @@ export default function Home() {
               📋 {race.roomId}
             </button>
           )}
+          {user ? (
+            <span className="text-xs font-sans flex items-center gap-1" style={{ color: 'var(--teal)' }}>
+              👤 {user.username}
+              <button onClick={handleLogout} className="underline" style={{ color: 'var(--text-muted)' }}>Keluar</button>
+            </span>
+          ) : (
+            <button onClick={() => setShowAuth(true)} className="text-xs font-sans underline" style={{ color: 'var(--text-muted)' }}>
+              Masuk
+            </button>
+          )}
           <button onClick={sound.toggle} className="text-lg">{sound.soundEnabled ? '🔊' : '🔇'}</button>
           <button onClick={toggleMusic} className="text-lg" title={musicEnabled ? 'Matikan musik' : 'Putar musik'} style={{ opacity: musicEnabled ? 1 : 0.4 }}>🎵</button>
           <button onClick={toggleTheme} className="text-lg">{isDark ? '☀️' : '🌙'}</button>
         </div>
       </nav>
+
+      {showAuth && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAuth(false)}>
+          <div onClick={e => e.stopPropagation()}>
+            <AuthForm onLogin={handleLogin} onSignup={handleSignup} error={authError} loading={authLoading} />
+            <button onClick={() => setShowAuth(false)} className="w-full mt-2 text-xs font-sans text-center" style={{ color: 'var(--text-muted)' }}>
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
 
       {view === 'landing' && (
         <LandingView

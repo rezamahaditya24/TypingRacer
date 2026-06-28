@@ -1,4 +1,12 @@
+import { v4 as uuidv4 } from 'uuid';
 import { DinoType } from '../types';
+
+export interface UserRecord {
+  id: string;
+  username: string;
+  passwordHash: string;
+  createdAt: number;
+}
 
 export interface PlayerRecord {
   playerId: string;
@@ -44,11 +52,16 @@ export interface Database {
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   getPlayerHistory(playerId: string, limit?: number): Promise<PlayerHistoryEntry[]>;
   getPlayerStats(playerId: string): Promise<LeaderboardEntry | null>;
+  createUser(username: string, passwordHash: string): Promise<UserRecord>;
+  getUserByUsername(username: string): Promise<UserRecord | null>;
+  getUserById(id: string): Promise<UserRecord | null>;
 }
 
 export class InMemoryDatabase implements Database {
   private races: RaceRecord[] = [];
   private playerNameIndex: Map<string, string> = new Map();
+  private users: Map<string, UserRecord> = new Map();
+  private usernames: Map<string, UserRecord> = new Map();
 
   async saveRace(record: RaceRecord): Promise<void> {
     this.races.push(record);
@@ -133,5 +146,27 @@ export class InMemoryDatabase implements Database {
       }
       return false;
     }) || null;
+  }
+
+  async createUser(username: string, passwordHash: string): Promise<UserRecord> {
+    const existing = this.usernames.get(username.toLowerCase());
+    if (existing) throw new Error('Username already exists');
+    const user: UserRecord = {
+      id: uuidv4(),
+      username,
+      passwordHash,
+      createdAt: Date.now(),
+    };
+    this.users.set(user.id, user);
+    this.usernames.set(username.toLowerCase(), user);
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<UserRecord | null> {
+    return this.usernames.get(username.toLowerCase()) || null;
+  }
+
+  async getUserById(id: string): Promise<UserRecord | null> {
+    return this.users.get(id) || null;
   }
 }

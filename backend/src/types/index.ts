@@ -77,6 +77,7 @@ export interface ServerToClient {
     id: string;
   };
   online_count: { count: number };
+  auth_ok: { userId: string; username: string };
 }
 
 export interface ClientToServer {

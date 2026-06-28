@@ -1,4 +1,4 @@
-import { Database, RaceRecord, LeaderboardEntry, PlayerHistoryEntry } from './Database';
+import { Database, RaceRecord, LeaderboardEntry, PlayerHistoryEntry, UserRecord } from './Database';
 
 const { Pool } = require('pg');
 
@@ -38,6 +38,17 @@ export class PostgresDatabase implements Database {
       `);
       await client.query(`
         CREATE INDEX IF NOT EXISTS idx_race_players_race_id ON race_players(race_id)
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at BIGINT NOT NULL
+        )
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)
       `);
     } finally {
       client.release();
@@ -159,5 +170,36 @@ export class PostgresDatabase implements Database {
 
   async close(): Promise<void> {
     await this.pool.end();
+  }
+
+  async createUser(username: string, passwordHash: string): Promise<UserRecord> {
+    const id = require('uuid').v4();
+    const result = await this.pool.query(
+      `INSERT INTO users (id, username, password_hash, created_at) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (username) DO NOTHING RETURNING id`,
+      [id, username.toLowerCase(), passwordHash, Date.now()]
+    );
+    if (result.rows.length === 0) throw new Error('Username already exists');
+    return { id, username, passwordHash, createdAt: Date.now() };
+  }
+
+  async getUserByUsername(username: string): Promise<UserRecord | null> {
+    const result = await this.pool.query(
+      'SELECT id, username, password_hash, created_at FROM users WHERE username = $1',
+      [username.toLowerCase()]
+    );
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return { id: row.id, username: row.username, passwordHash: row.password_hash, createdAt: Number(row.created_at) };
+  }
+
+  async getUserById(id: string): Promise<UserRecord | null> {
+    const result = await this.pool.query(
+      'SELECT id, username, password_hash, created_at FROM users WHERE id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return { id: row.id, username: row.username, passwordHash: row.password_hash, createdAt: Number(row.created_at) };
   }
 }

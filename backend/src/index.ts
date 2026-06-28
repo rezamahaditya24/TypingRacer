@@ -1,27 +1,87 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { RoomManager } from './services/RoomManager';
 import { Database, InMemoryDatabase } from './services/Database';
 import { PostgresDatabase } from './services/PostgresDatabase';
 import { handleConnection } from './handlers/wsHandler';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const JWT_SECRET = process.env.JWT_SECRET || 'dino-dash-secret-key';
 
 function parseUrl(url?: string): { path: string; query: URLSearchParams } {
   const u = new URL(url || '/', `http://localhost:${PORT}`);
   return { path: u.pathname, query: u.searchParams };
 }
 
+function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    req.on('end', () => {
+      try { resolve(JSON.parse(body)); }
+      catch { resolve({}); }
+    });
+  });
+}
+
 async function handleApi(req: IncomingMessage, res: ServerResponse, db: Database) {
   const { path, query } = parseUrl(req.url);
 
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  if (path === '/api/signup' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const username = (body.username as string || '').trim();
+    const password = body.password as string || '';
+    if (!username || username.length < 3) {
+      res.writeHead(400); res.end(JSON.stringify({ error: 'Username minimal 3 karakter' })); return;
+    }
+    if (password.length < 4) {
+      res.writeHead(400); res.end(JSON.stringify({ error: 'Password minimal 4 karakter' })); return;
+    }
+    try {
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await db.createUser(username, passwordHash);
+      const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+      res.writeHead(201);
+      res.end(JSON.stringify({ token, user: { id: user.id, username: user.username } }));
+    } catch (e: any) {
+      if (e.message === 'Username already exists') {
+        res.writeHead(409); res.end(JSON.stringify({ error: 'Username sudah dipakai' })); return;
+      }
+      res.writeHead(500); res.end(JSON.stringify({ error: 'Gagal daftar' }));
+    }
+    return;
+  }
+
+  if (path === '/api/login' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const username = (body.username as string || '').trim();
+    const password = body.password as string || '';
+    if (!username || !password) {
+      res.writeHead(400); res.end(JSON.stringify({ error: 'Username dan password diperlukan' })); return;
+    }
+    const user = await db.getUserByUsername(username);
+    if (!user) {
+      res.writeHead(401); res.end(JSON.stringify({ error: 'Username atau password salah' })); return;
+    }
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      res.writeHead(401); res.end(JSON.stringify({ error: 'Username atau password salah' })); return;
+    }
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    res.writeHead(200);
+    res.end(JSON.stringify({ token, user: { id: user.id, username: user.username } }));
     return;
   }
 
@@ -65,6 +125,24 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, db: Database
 
     res.writeHead(200);
     res.end(JSON.stringify(player));
+    return;
+  }
+
+  if (path === '/api/me' && req.method === 'GET') {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) {
+      res.writeHead(401); res.end(JSON.stringify({ error: 'Token diperlukan' })); return;
+    }
+    try {
+      const decoded = jwt.verify(auth.slice(7), JWT_SECRET) as { userId: string; username: string };
+      const user = await db.getUserById(decoded.userId);
+      if (!user) {
+        res.writeHead(401); res.end(JSON.stringify({ error: 'User tidak ditemukan' })); return;
+      }
+      res.writeHead(200); res.end(JSON.stringify({ user: { id: user.id, username: user.username } }));
+    } catch {
+      res.writeHead(401); res.end(JSON.stringify({ error: 'Token tidak valid' }));
+    }
     return;
   }
 

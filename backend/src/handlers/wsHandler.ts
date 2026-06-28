@@ -1,8 +1,12 @@
 import { WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 import { RoomManager } from '../services/RoomManager';
 import { Database } from '../services/Database';
 import { ClientToServer, DinoType, RoomStatus } from '../types';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dino-dash-secret-key';
+const wsAuth = new Map<WebSocket, { userId: string; username: string }>();
 
 export function handleConnection(ws: WebSocket, roomManager: RoomManager, database: Database): void {
   const playerId = uuidv4();
@@ -20,6 +24,9 @@ export function handleConnection(ws: WebSocket, roomManager: RoomManager, databa
     const { type, payload } = parsed;
 
     switch (type) {
+      case 'auth':
+        handleAuth(ws, payload as { token: string });
+        break;
       case 'join_room':
         handleJoinRoom(ws, roomManager, payload as ClientToServer['join_room']);
         break;
@@ -50,6 +57,10 @@ export function handleConnection(ws: WebSocket, roomManager: RoomManager, databa
   });
 
   ws.on('close', () => {
+    wsAuth.delete(ws);
+  });
+
+  ws.on('close', () => {
     const roomId = roomManager.getRoomIdByWs(ws);
     if (roomId) {
       const playerId = roomManager.getPlayerIdByWsSafe(ws);
@@ -68,6 +79,17 @@ export function handleConnection(ws: WebSocket, roomManager: RoomManager, databa
       }
     }
   });
+}
+
+function handleAuth(ws: WebSocket, payload: { token: string }): void {
+  try {
+    const decoded = jwt.verify(payload.token, JWT_SECRET) as { userId: string; username: string };
+    wsAuth.set(ws, { userId: decoded.userId, username: decoded.username });
+    sendToClient(ws, { type: 'auth_ok', payload: { userId: decoded.userId, username: decoded.username } });
+  } catch {
+    wsAuth.delete(ws);
+    sendError(ws, 'Token tidak valid.');
+  }
 }
 
 function handleJoinRoom(ws: WebSocket, roomManager: RoomManager, payload: ClientToServer['join_room']): void {
