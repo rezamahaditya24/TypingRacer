@@ -107,7 +107,7 @@ export default function Home() {
   }, [ws.send, name, selectedDino]);
 
   const waitConnect = (cb: () => void) => {
-    const i = setInterval(() => { if (ws.connected) { clearInterval(i); cb(); } }, 100);
+    const i = setInterval(() => { if (ws.ws.current?.readyState === WebSocket.OPEN) { clearInterval(i); cb(); } }, 100);
     setTimeout(() => clearInterval(i), 5000);
   };
 
