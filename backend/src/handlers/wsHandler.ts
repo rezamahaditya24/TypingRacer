@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { RoomManager } from '../services/RoomManager';
 import { Database } from '../services/Database';
 import { ClientToServer, DinoType, RoomStatus } from '../types';
@@ -65,6 +66,12 @@ export function handleConnection(ws: WebSocket, roomManager: RoomManager, databa
       case 'get_player_history':
         handleGetPlayerHistory(ws, database, payload as { playerId: string; limit?: number });
         break;
+      case 'signup':
+        handleSignup(ws, database, payload as { username: string; password: string });
+        break;
+      case 'login':
+        handleLogin(ws, database, payload as { username: string; password: string });
+        break;
       case 'get_public_rooms':
         handleGetPublicRooms(ws, roomManager);
         break;
@@ -88,6 +95,42 @@ export function handleConnection(ws: WebSocket, roomManager: RoomManager, databa
         if (room) broadcastRoomState(roomManager, roomId);
       }
     }
+  });
+}
+
+async function handleSignup(ws: WebSocket, database: Database, payload: { username: string; password: string }): Promise<void> {
+  const username = (payload.username || '').trim();
+  const password = payload.password || '';
+  if (!username || username.length < 3) { sendError(ws, 'Username minimal 3 karakter'); return; }
+  if (password.length < 4) { sendError(ws, 'Password minimal 4 karakter'); return; }
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await database.createUser(username, passwordHash);
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    sendToClient(ws, {
+      type: 'auth_ok',
+      payload: { token, userId: user.id, username: user.username, xp: 0, level: 1 },
+    });
+  } catch (e: any) {
+    if (e.message === 'Username already exists') { sendError(ws, 'Username sudah dipakai'); return; }
+    sendError(ws, 'Gagal daftar');
+  }
+}
+
+async function handleLogin(ws: WebSocket, database: Database, payload: { username: string; password: string }): Promise<void> {
+  const username = (payload.username || '').trim();
+  const password = payload.password || '';
+  if (!username || !password) { sendError(ws, 'Username dan password diperlukan'); return; }
+  const user = await database.getUserByUsername(username);
+  if (!user) { sendError(ws, 'Username atau password salah'); return; }
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) { sendError(ws, 'Username atau password salah'); return; }
+  const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+  wsAuth.set(ws, { userId: user.id, username: user.username });
+  const level = Math.floor(Math.sqrt(user.xp / 100)) + 1;
+  sendToClient(ws, {
+    type: 'auth_ok',
+    payload: { token, userId: user.id, username: user.username, xp: user.xp, level },
   });
 }
 

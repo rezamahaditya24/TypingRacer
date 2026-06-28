@@ -38,6 +38,7 @@ export default function Home() {
   const keystrokeTimestamps = useRef<{ charIndex: number; timeMs: number }[]>([]);
   const wpmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingRejoinRef = useRef<string | null>(null);
+  const authLoadingRef = useRef(false);
 
   const sound = useSound();
 
@@ -46,9 +47,22 @@ export default function Home() {
   const ws = useWebSocket({
     onMessage: useCallback((data) => {
       if (data.type === 'auth_ok') {
-        const p = data.payload as { userId: string; username: string };
-        setUser({ id: p.userId, username: p.username });
+        const p = data.payload as { token: string; userId: string; username: string };
+        if (p.token) {
+          setToken(p.token);
+          try { localStorage.setItem('dino-token', p.token); } catch {}
+        }
+        if (p.userId) setUser({ id: p.userId, username: p.username });
         setAuthLoading(false);
+        authLoadingRef.current = false;
+        setShowAuth(false);
+        return;
+      }
+      if (data.type === 'error' && authLoadingRef.current) {
+        const p = data.payload as { message: string };
+        setAuthError(p.message || 'Terjadi kesalahan');
+        setAuthLoading(false);
+        authLoadingRef.current = false;
         return;
       }
       race.handleMessage(data);
@@ -90,11 +104,7 @@ export default function Home() {
       const savedToken = localStorage.getItem('dino-token');
       if (savedToken) {
         setToken(savedToken);
-        fetch(`${API_HOST}/api/me`, { headers: { Authorization: `Bearer ${savedToken}` } })
-          .then(r => r.json()).then(data => {
-            if (data.user) setUser(data.user);
-            else { localStorage.removeItem('dino-token'); setToken(null); }
-          }).catch(() => {});
+        setTimeout(() => ws.send('auth', { token: savedToken }), 500);
       }
     } catch {}
     ws.connect();
@@ -193,36 +203,18 @@ export default function Home() {
     setView('lobby');
   };
 
-  const handleLogin = async (username: string, password: string) => {
+  const handleLogin = (username: string, password: string) => {
     setAuthLoading(true); setAuthError(null);
-    try {
-      const r = await fetch(`${API_HOST}/api/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await r.json();
-      if (!r.ok) { setAuthError(data.error || 'Gagal masuk'); setAuthLoading(false); return; }
-      setToken(data.token); setUser(data.user); setShowAuth(false);
-      try { localStorage.setItem('dino-token', data.token); } catch {}
-      if (ws.connected) ws.send('auth', { token: data.token });
-    } catch { setAuthError('Gagal terhubung ke server'); }
-    setAuthLoading(false);
+    authLoadingRef.current = true;
+    const doLogin = () => ws.send('login', { username, password });
+    if (!ws.connected) { ws.connect(); waitConnect(doLogin); } else doLogin();
   };
 
-  const handleSignup = async (username: string, password: string) => {
+  const handleSignup = (username: string, password: string) => {
     setAuthLoading(true); setAuthError(null);
-    try {
-      const r = await fetch(`${API_HOST}/api/signup`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await r.json();
-      if (!r.ok) { setAuthError(data.error || 'Gagal daftar'); setAuthLoading(false); return; }
-      setToken(data.token); setUser(data.user); setShowAuth(false);
-      try { localStorage.setItem('dino-token', data.token); } catch {}
-      if (ws.connected) ws.send('auth', { token: data.token });
-    } catch { setAuthError('Gagal terhubung ke server'); }
-    setAuthLoading(false);
+    authLoadingRef.current = true;
+    const doSignup = () => ws.send('signup', { username, password });
+    if (!ws.connected) { ws.connect(); waitConnect(doSignup); } else doSignup();
   };
 
   const handleLogout = () => {
