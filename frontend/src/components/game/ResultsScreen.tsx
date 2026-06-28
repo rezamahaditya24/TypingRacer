@@ -7,16 +7,21 @@ import { useRace } from '@/hooks/useRace';
 import { DINO_LIST } from '@/lib/constants';
 import ConfettiCanvas from './ConfettiCanvas';
 
-export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wpmHistory, previousBestWpm }: {
+const API_HOST = (process.env.NEXT_PUBLIC_WS_HOST || 'ws://localhost:3001').replace(/^ws/, 'http');
+
+export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wpmHistory, previousBestWpm, token }: {
   race: ReturnType<typeof useRace>;
   isHost: boolean;
   onRematch: () => void;
   onPlayAgain: () => void;
   wpmHistory?: { time: number; wpm: number }[];
   previousBestWpm?: number;
+  token?: string | null;
 }) {
   const [rematchSent, setRematchSent] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setShowConfetti(true), 300);
@@ -24,6 +29,25 @@ export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wp
   }, []);
 
   const winner = race.results.find(r => r.rank === 1);
+  const myResult = race.results.find(r => r.id === race.playerId);
+  const totalXp = race.results.reduce((sum, r) => sum + ((r as any).xpEarned || 0), 0);
+
+  const handleShare = async () => {
+    if (!myResult || !token) return;
+    try {
+      const r = await fetch(`${API_HOST}/api/challenge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ wpm: myResult.wpm, accuracy: myResult.accuracy, textId: race.text.slice(0, 20) }),
+      });
+      const data = await r.json();
+      if (data.id) setShareLink(data.id);
+    } catch {}
+  };
+
+  const shareText = myResult
+    ? `Aku baru ${myResult.wpm} WPM di Dino Dash! Bisa ngalahin aku? 🦕`
+    : 'Main Dino Dash yuk! 🦕 Balapan mengetik seru!';
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6 relative">
@@ -49,6 +73,15 @@ export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wp
         initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 150, damping: 12 }}>
         🏁 Race Complete!
       </motion.h1>
+
+      {/* XP earned banner */}
+      {token && myResult && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="inline-flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-full"
+          style={{ background: 'var(--bg-tertiary)', color: 'var(--teal)', border: '.5px solid var(--border-color)' }}>
+          ✨ +{(myResult as any).xpEarned || 0} XP
+        </motion.div>
+      )}
 
       <div className="flex items-end gap-3 h-40">
         {[2, 1, 3].map(rankIdx => {
@@ -85,6 +118,7 @@ export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wp
                 <div className="font-bold font-sans text-sm">{r.name}</div>
                 <div className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
                   {r.wpm} WPM · {r.accuracy}% akurasi · {(r.timeMs / 1000).toFixed(1)}s
+                  {(r as any).xpEarned ? ` · +${(r as any).xpEarned} XP` : ''}
                 </div>
               </div>
               {previousBestWpm && r.wpm > previousBestWpm && (
@@ -93,8 +127,7 @@ export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wp
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.5 + i * 0.15, type: 'spring' }}
                   className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(74,222,128,.15)', color: 'var(--correct)' }}
-                >
+                  style={{ background: 'rgba(74,222,128,.15)', color: 'var(--correct)' }}>
                   ✦ PB +{r.wpm - previousBestWpm} WPM
                 </motion.div>
               )}
@@ -117,7 +150,7 @@ export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wp
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap justify-center">
         {isHost && (
           <motion.button onClick={() => { onRematch(); setRematchSent(true); }}
             disabled={rematchSent}
@@ -128,12 +161,38 @@ export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wp
           </motion.button>
         )}
         <motion.button onClick={onPlayAgain}
-          className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105"
+          className="px-6 py-3 rounded-xl font-bold font-sans"
           style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '.5px solid var(--border-color)' }}
           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           Main Baru
         </motion.button>
       </div>
+
+      {/* Share challenge */}
+      {token && myResult && !shareLink && (
+        <button onClick={handleShare}
+          className="text-xs font-sans underline flex items-center gap-1"
+          style={{ color: 'var(--text-muted)' }}>
+          📤 Tantang teman 
+        </button>
+      )}
+
+      {shareLink && (
+        <div className="text-center">
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(`Aku baru ${myResult?.wpm} WPM di Dino Dash! Coba kalahin: ${window.location.origin}?challenge=${shareLink}`);
+              setShareCopied(true);
+            }}
+            className="text-xs font-sans underline"
+            style={{ color: 'var(--teal)' }}>
+            {shareCopied ? '✓ Tersalin!' : '📋 Salin link tantangan'}
+          </button>
+          <p className="text-[10px] mt-1" style={{ color: 'var(--muted)' }}>
+            {shareText}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

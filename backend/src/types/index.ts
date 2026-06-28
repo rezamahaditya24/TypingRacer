@@ -11,6 +11,7 @@ export interface Player {
   finishedAt: number | null;
   connected: boolean;
   ready: boolean;
+  isSpectator?: boolean;
 }
 
 export type DinoType = 't-rex' | 'triceratops' | 'raptor' | 'stegosaurus' | 'brontosaurus';
@@ -28,6 +29,9 @@ export interface Room {
   startedAt: number | null;
   countdownEndsAt: number | null;
   language: Language;
+  password?: string;
+  isPublic?: boolean;
+  spectators: Set<string>;
 }
 
 export interface ServerToClient {
@@ -41,10 +45,12 @@ export interface ServerToClient {
       accuracy: number;
       finished: boolean;
       ready: boolean;
+      isSpectator?: boolean;
     }>;
     text: string;
     hostId: string;
     status: RoomStatus;
+    isPublic?: boolean;
   };
   player_ready: { id: string; ready: boolean };
   countdown: { secs: number };
@@ -65,25 +71,48 @@ export interface ServerToClient {
       wpm: number;
       accuracy: number;
       timeMs: number;
+      xpEarned?: number;
     }>;
+    xpEarned?: number;
+    level?: number;
+    totalXp?: number;
   };
   error: { message: string };
   player_joined: {
     id: string;
     name: string;
     dino: DinoType;
+    isSpectator?: boolean;
   };
   player_left: {
     id: string;
   };
   online_count: { count: number };
   auth_ok: { userId: string; username: string };
+  public_rooms: {
+    rooms: Array<{
+      id: string;
+      playerCount: number;
+      maxPlayers: number;
+      hostName: string;
+      language: Language;
+    }>;
+  };
+  spectator_update: {
+    players: Array<{
+      id: string; name: string; dino: DinoType;
+      progress: number; wpm: number; accuracy: number; finished: boolean;
+    }>;
+    text: string;
+    startedAt: number;
+  };
 }
 
 export interface ClientToServer {
-  join_room: { roomId: string; name: string; dino: DinoType; language?: Language };
+  join_room: { roomId: string; name: string; dino: DinoType; language?: Language; password?: string; asSpectator?: boolean };
   progress: { charIndex: number };
   finish: {};
   start_race: {};
   ready: {};
+  get_public_rooms: {};
 }

@@ -22,6 +22,7 @@ export interface PlayerHistoryEntry {
   rank: number;
   totalPlayers: number;
   startedAt: number;
+  xpEarned: number;
 }
 
 export function useRace() {
@@ -38,6 +39,7 @@ export function useRace() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [playerHistory, setPlayerHistory] = useState<PlayerHistoryEntry[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
+  const [publicRooms, setPublicRooms] = useState<any[]>([]);
 
   const handleMessage = useCallback((data: { type: string; payload: Record<string, unknown> }) => {
     const { type, payload } = data;
@@ -115,6 +117,10 @@ export function useRace() {
         setError(payload.message as string);
         break;
       }
+      case 'public_rooms': {
+        setPublicRooms((payload as any).rooms || []);
+        break;
+      }
     }
   }, []);
 
@@ -132,12 +138,13 @@ export function useRace() {
     setLeaderboard([]);
     setPlayerHistory([]);
     setOnlineCount(0);
+    setPublicRooms([]);
   }, []);
 
   return {
     roomId, playerId, players, text, hostId, status,
     countdownSec, results, startedAt, error,
-    leaderboard, playerHistory, onlineCount,
+    leaderboard, playerHistory, onlineCount, publicRooms,
     setError, handleMessage, reset,
   };
 }

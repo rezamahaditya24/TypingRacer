@@ -1,4 +1,4 @@
-import { Database, RaceRecord, LeaderboardEntry, PlayerHistoryEntry, UserRecord } from './Database';
+import { Database, RaceRecord, LeaderboardEntry, PlayerHistoryEntry, UserRecord, DashboardData, ChallengeRecord } from './Database';
 
 const { Pool } = require('pg');
 
@@ -30,7 +30,9 @@ export class PostgresDatabase implements Database {
           wpm INTEGER NOT NULL,
           accuracy INTEGER NOT NULL,
           time_ms BIGINT NOT NULL,
-          rank INTEGER NOT NULL
+          rank INTEGER NOT NULL,
+          xp_earned INTEGER DEFAULT 0,
+          errors TEXT DEFAULT ''
         )
       `);
       await client.query(`
@@ -44,11 +46,24 @@ export class PostgresDatabase implements Database {
           id TEXT PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
-          created_at BIGINT NOT NULL
+          created_at BIGINT NOT NULL,
+          xp INTEGER DEFAULT 0,
+          total_races INTEGER DEFAULT 0
         )
       `);
       await client.query(`
         CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS challenges (
+          id TEXT PRIMARY KEY,
+          challenger_id TEXT NOT NULL,
+          challenger_name TEXT NOT NULL,
+          wpm INTEGER NOT NULL,
+          accuracy INTEGER NOT NULL,
+          text_id TEXT NOT NULL,
+          created_at BIGINT NOT NULL
+        )
       `);
     } finally {
       client.release();
@@ -65,9 +80,9 @@ export class PostgresDatabase implements Database {
       );
       for (const p of record.players) {
         await client.query(
-          `INSERT INTO race_players (race_id, player_id, name, dino, wpm, accuracy, time_ms, rank)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [record.id, p.playerId, p.name, p.dino, p.wpm, p.accuracy, p.timeMs, p.rank]
+          `INSERT INTO race_players (race_id, player_id, name, dino, wpm, accuracy, time_ms, rank, xp_earned, errors)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [record.id, p.playerId, p.name, p.dino, p.wpm, p.accuracy, p.timeMs, p.rank, p.xpEarned || 0, p.errors || '']
         );
       }
       await client.query('COMMIT');
@@ -117,6 +132,7 @@ export class PostgresDatabase implements Database {
         rp.accuracy,
         rp.time_ms,
         rp.rank,
+        rp.xp_earned,
         (SELECT COUNT(*) FROM race_players rp2 WHERE rp2.race_id = r.id) AS total_players,
         r.started_at
       FROM race_players rp
@@ -135,6 +151,7 @@ export class PostgresDatabase implements Database {
       rank: Number(row.rank),
       totalPlayers: Number(row.total_players),
       startedAt: Number(row.started_at),
+      xpEarned: Number(row.xp_earned),
     }));
   }
 
@@ -173,33 +190,91 @@ export class PostgresDatabase implements Database {
   }
 
   async createUser(username: string, passwordHash: string): Promise<UserRecord> {
-    const id = require('uuid').v4();
+    const { v4 } = require('uuid');
+    const id = v4();
     const result = await this.pool.query(
-      `INSERT INTO users (id, username, password_hash, created_at) VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (id, username, password_hash, created_at, xp, total_races) VALUES ($1, $2, $3, $4, 0, 0)
        ON CONFLICT (username) DO NOTHING RETURNING id`,
       [id, username.toLowerCase(), passwordHash, Date.now()]
     );
     if (result.rows.length === 0) throw new Error('Username already exists');
-    return { id, username, passwordHash, createdAt: Date.now() };
+    return { id, username, passwordHash, createdAt: Date.now(), xp: 0, totalRaces: 0 };
   }
 
   async getUserByUsername(username: string): Promise<UserRecord | null> {
     const result = await this.pool.query(
-      'SELECT id, username, password_hash, created_at FROM users WHERE username = $1',
+      'SELECT id, username, password_hash, created_at, xp, total_races FROM users WHERE username = $1',
       [username.toLowerCase()]
     );
     if (result.rows.length === 0) return null;
     const row = result.rows[0];
-    return { id: row.id, username: row.username, passwordHash: row.password_hash, createdAt: Number(row.created_at) };
+    return { id: row.id, username: row.username, passwordHash: row.password_hash, createdAt: Number(row.created_at), xp: Number(row.xp), totalRaces: Number(row.total_races) };
   }
 
   async getUserById(id: string): Promise<UserRecord | null> {
     const result = await this.pool.query(
-      'SELECT id, username, password_hash, created_at FROM users WHERE id = $1',
+      'SELECT id, username, password_hash, created_at, xp, total_races FROM users WHERE id = $1',
       [id]
     );
     if (result.rows.length === 0) return null;
     const row = result.rows[0];
-    return { id: row.id, username: row.username, passwordHash: row.password_hash, createdAt: Number(row.created_at) };
+    return { id: row.id, username: row.username, passwordHash: row.password_hash, createdAt: Number(row.created_at), xp: Number(row.xp), totalRaces: Number(row.total_races) };
+  }
+
+  async addXp(userId: string, xp: number): Promise<void> {
+    await this.pool.query(
+      'UPDATE users SET xp = xp + $1, total_races = total_races + 1 WHERE id = $2',
+      [xp, userId]
+    );
+  }
+
+  async getDashboard(userId: string): Promise<DashboardData | null> {
+    const user = await this.getUserById(userId);
+    if (!user) return null;
+
+    const history = await this.getPlayerHistory(userId, 20);
+    const stats = await this.getPlayerStats(userId);
+
+    const weekDays: { day: string; wpm: number }[] = [];
+    const now = Date.now();
+    for (let i = 6; i >= 0; i--) {
+      const start = now - i * 86400000;
+      const end = start + 86400000;
+      const dayRaces = history.filter(r => r.startedAt >= start && r.startedAt < end);
+      const avg = dayRaces.length > 0 ? Math.round(dayRaces.reduce((a, r) => a + r.wpm, 0) / dayRaces.length) : 0;
+      const d = new Date(start);
+      weekDays.push({ day: d.toLocaleDateString('id', { weekday: 'short' }), wpm: avg });
+    }
+
+    const level = Math.floor(Math.sqrt(user.xp / 100)) + 1;
+
+    return {
+      username: user.username,
+      xp: user.xp,
+      level,
+      totalRaces: user.totalRaces,
+      bestWpm: stats?.bestWpm || 0,
+      avgWpm: stats?.avgWpm || 0,
+      bestAccuracy: stats?.bestAccuracy || 0,
+      recentRaces: history.slice(0, 10),
+      weeklyWpm: weekDays,
+    };
+  }
+
+  async createChallenge(challengerId: string, challengerName: string, wpm: number, accuracy: number, textId: string): Promise<string> {
+    const { v4 } = require('uuid');
+    const id = v4().slice(0, 8);
+    await this.pool.query(
+      `INSERT INTO challenges (id, challenger_id, challenger_name, wpm, accuracy, text_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, challengerId, challengerName, wpm, accuracy, textId, Date.now()]
+    );
+    return id;
+  }
+
+  async getChallenge(id: string): Promise<ChallengeRecord | null> {
+    const result = await this.pool.query('SELECT * FROM challenges WHERE id = $1', [id]);
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return { id: row.id, challengerId: row.challenger_id, challengerName: row.challenger_name, wpm: Number(row.wpm), accuracy: Number(row.accuracy), textId: row.text_id, createdAt: Number(row.created_at) };
   }
 }

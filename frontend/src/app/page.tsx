@@ -14,11 +14,13 @@ import ResultsScreen from '@/components/game/ResultsScreen';
 import PracticeView from '@/components/game/PracticeView';
 import Leaderboard from '@/components/ui/Leaderboard';
 import AuthForm from '@/components/ui/AuthForm';
+import DashboardView from '@/components/ui/DashboardView';
+import PublicRooms from '@/components/ui/PublicRooms';
 
 const API_HOST = (process.env.NEXT_PUBLIC_WS_HOST || 'ws://localhost:3001').replace(/^ws/, 'http');
 
 export default function Home() {
-  const [view, setView] = useState<'landing' | 'lobby' | 'racing' | 'results' | 'leaderboard' | 'practice'>('landing');
+  const [view, setView] = useState<'landing' | 'lobby' | 'racing' | 'results' | 'leaderboard' | 'practice' | 'dashboard' | 'publicRooms'>('landing');
   const [name, setName] = useState(randomName());
   const [selectedDino, setSelectedDino] = useState<DinoType>('t-rex');
   const [joinCode, setJoinCode] = useState('');
@@ -53,6 +55,22 @@ export default function Home() {
     }, [race.handleMessage]),
   });
 
+  // Handle challenge link on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const challengeId = params.get('challenge');
+    if (challengeId) {
+      fetch(`${API_HOST}/api/challenge/${challengeId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.challengerName) {
+            setName(`Lawan ${data.challengerName}`);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('dino-dash-theme');
@@ -68,9 +86,7 @@ export default function Home() {
       const savedLang = localStorage.getItem('dino-language') as Language | null;
       if (savedLang === 'id' || savedLang === 'en') setLanguage(savedLang);
       const savedRoom = localStorage.getItem('dino-room');
-      if (savedRoom) {
-        pendingRejoinRef.current = savedRoom;
-      }
+      if (savedRoom) pendingRejoinRef.current = savedRoom;
       const savedToken = localStorage.getItem('dino-token');
       if (savedToken) {
         setToken(savedToken);
@@ -154,8 +170,8 @@ export default function Home() {
     }
   }, [ws.connected]);
 
-  const sendJoin = useCallback((roomId: string) => {
-    ws.send('join_room', { roomId, name, dino: selectedDino, language });
+  const sendJoin = useCallback((roomId: string, asSpectator = false) => {
+    ws.send('join_room', { roomId, name, dino: selectedDino, language, asSpectator });
   }, [ws.send, name, selectedDino, language]);
 
   const waitConnect = (cb: () => void) => {
@@ -163,24 +179,12 @@ export default function Home() {
     setTimeout(() => clearInterval(i), 5000);
   };
 
+  useEffect(() => { try { localStorage.setItem('dino-name', name); } catch {} }, [name]);
+  useEffect(() => { try { localStorage.setItem('dino-dino', selectedDino); } catch {} }, [selectedDino]);
+  useEffect(() => { try { localStorage.setItem('dino-language', language); } catch {} }, [language]);
   useEffect(() => {
-    try { localStorage.setItem('dino-name', name); } catch {}
-  }, [name]);
-
-  useEffect(() => {
-    try { localStorage.setItem('dino-dino', selectedDino); } catch {}
-  }, [selectedDino]);
-
-  useEffect(() => {
-    try { localStorage.setItem('dino-language', language); } catch {}
-  }, [language]);
-
-  useEffect(() => {
-    if (race.roomId) {
-      try { localStorage.setItem('dino-room', race.roomId); } catch {}
-    } else {
-      try { localStorage.removeItem('dino-room'); } catch {}
-    }
+    if (race.roomId) { try { localStorage.setItem('dino-room', race.roomId); } catch {} }
+    else { try { localStorage.removeItem('dino-room'); } catch {} }
   }, [race.roomId]);
 
   const handleCreateRoom = () => {
@@ -198,9 +202,7 @@ export default function Home() {
       });
       const data = await r.json();
       if (!r.ok) { setAuthError(data.error || 'Gagal masuk'); setAuthLoading(false); return; }
-      setToken(data.token);
-      setUser(data.user);
-      setShowAuth(false);
+      setToken(data.token); setUser(data.user); setShowAuth(false);
       try { localStorage.setItem('dino-token', data.token); } catch {}
       if (ws.connected) ws.send('auth', { token: data.token });
     } catch { setAuthError('Gagal terhubung ke server'); }
@@ -216,9 +218,7 @@ export default function Home() {
       });
       const data = await r.json();
       if (!r.ok) { setAuthError(data.error || 'Gagal daftar'); setAuthLoading(false); return; }
-      setToken(data.token);
-      setUser(data.user);
-      setShowAuth(false);
+      setToken(data.token); setUser(data.user); setShowAuth(false);
       try { localStorage.setItem('dino-token', data.token); } catch {}
       if (ws.connected) ws.send('auth', { token: data.token });
     } catch { setAuthError('Gagal terhubung ke server'); }
@@ -226,8 +226,7 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    setToken(null);
-    setUser(null);
+    setToken(null); setUser(null);
     try { localStorage.removeItem('dino-token'); } catch {}
   };
 
@@ -239,17 +238,18 @@ export default function Home() {
     setView('lobby');
   };
 
+  const handleJoinPublicRoom = (roomId: string) => {
+    if (!ws.connected) { ws.connect(); waitConnect(() => sendJoin(roomId)); }
+    else sendJoin(roomId);
+    setView('lobby');
+  };
+
   const handleStartRace = () => ws.send('start_race');
   const handleResetRace = () => ws.send('reset_race');
 
   const handleOpenLeaderboard = () => {
-    if (!ws.connected) {
-      ws.connect();
-      waitConnect(() => { ws.send('get_leaderboard', {}); setView('leaderboard'); });
-    } else {
-      ws.send('get_leaderboard', {});
-      setView('leaderboard');
-    }
+    if (!ws.connected) { ws.connect(); waitConnect(() => { ws.send('get_leaderboard', {}); setView('leaderboard'); }); }
+    else { ws.send('get_leaderboard', {}); setView('leaderboard'); }
   };
 
   const handlePractice = () => setView('practice');
@@ -280,7 +280,7 @@ export default function Home() {
             🦕 Dino Dash
           </button>
           {view !== 'landing' && (
-            <button onClick={() => { setView('landing'); }} className="text-sm font-sans" style={{ color: 'var(--text-muted)' }}>
+            <button onClick={() => { race.reset(); ws.disconnect(); setView('landing'); }} className="text-sm font-sans" style={{ color: 'var(--text-muted)' }}>
               ← Kembali
             </button>
           )}
@@ -311,9 +311,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAuth(false)}>
           <div onClick={e => e.stopPropagation()}>
             <AuthForm onLogin={handleLogin} onSignup={handleSignup} error={authError} loading={authLoading} />
-            <button onClick={() => setShowAuth(false)} className="w-full mt-2 text-xs font-sans text-center" style={{ color: 'var(--text-muted)' }}>
-              Tutup
-            </button>
+            <button onClick={() => setShowAuth(false)} className="w-full mt-2 text-xs font-sans text-center" style={{ color: 'var(--text-muted)' }}>Tutup</button>
           </div>
         </div>
       )}
@@ -327,12 +325,21 @@ export default function Home() {
           onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom}
           onOpenLeaderboard={handleOpenLeaderboard}
           onPractice={handlePractice}
+          onOpenDashboard={() => setView('dashboard')}
+          onOpenPublicRooms={() => { if (!ws.connected) ws.connect(); else ws.send('get_public_rooms', {}); setView('publicRooms'); }}
           error={race.error}
           onlineCount={race.onlineCount}
+          user={user}
         />
       )}
       {view === 'leaderboard' && (
         <Leaderboard race={race} ws={ws} onBack={() => setView('landing')} />
+      )}
+      {view === 'dashboard' && (
+        <DashboardView token={token} onBack={() => setView('landing')} />
+      )}
+      {view === 'publicRooms' && (
+        <PublicRooms race={race} ws={ws} onBack={() => setView('landing')} onJoin={handleJoinPublicRoom} />
       )}
       {view === 'practice' && (
         <PracticeView onBack={() => setView('landing')} onCorrectKey={sound.keyClick} onWrongKey={sound.errorBuzz} language={language} />
@@ -362,6 +369,7 @@ export default function Home() {
           onRematch={handleResetRace}
           onPlayAgain={() => { race.reset(); ws.disconnect(); setView('landing'); }}
           wpmHistory={wpmHistory}
+          token={token}
         />
       )}
 

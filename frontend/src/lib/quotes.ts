@@ -53,3 +53,19 @@ export function getRandomQuoteByLanguage(lang: 'id' | 'en'): Quote {
   const pool = filtered.length > 0 ? filtered : PRACTICE_QUOTES;
   return pool[Math.floor(Math.random() * pool.length)];
 }
+
+const MOTIVATIONAL_QUOTES: { id: string; idn: string; en: string }[] = [
+  { id: 'q1', idn: 'Setiap kata yang kau ketik adalah langkah menuju kecepatan', en: 'Every word you type is a step toward speed' },
+  { id: 'q2', idn: 'Jangan pernah menyerah, jari-jarimu masih bisa lebih cepat', en: 'Never give up, your fingers can still go faster' },
+  { id: 'q3', idn: 'Hidup adalah tentang belajar dari setiap kesalahan', en: 'Life is about learning from every mistake' },
+  { id: 'q4', idn: 'Latihan membuat sempurna, teruslah mengetik', en: 'Practice makes perfect, keep typing' },
+  { id: 'q5', idn: 'Cepat atau lambat, yang penting konsisten', en: 'Fast or slow, consistency is key' },
+  { id: 'q6', idn: 'Jangan bandingkan dirimu dengan orang lain, bandingkan dengan dirimu kemarin', en: 'Compare yourself to who you were yesterday, not others' },
+  { id: 'q7', idn: 'Setiap juara dulunya adalah pemula yang tidak pernah berhenti', en: 'Every champion was once a beginner who never stopped' },
+  { id: 'q8', idn: 'Fokus pada proses, hasil akan mengikuti', en: 'Focus on the process, results will follow' },
+];
+
+export function getMotivationalQuote(lang: 'id' | 'en'): string {
+  const q = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+  return lang === 'id' ? q.idn : q.en;
+}
