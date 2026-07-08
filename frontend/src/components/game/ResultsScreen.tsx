@@ -154,15 +154,15 @@ export default function ResultsScreen({ race, isHost, onRematch, onPlayAgain, wp
         {isHost && (
           <motion.button onClick={() => { onRematch(); setRematchSent(true); }}
             disabled={rematchSent}
-            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105 disabled:opacity-50"
-            style={{ background: 'var(--accent)', color: '#0d1117' }}
+            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105 disabled:opacity-50 glass-accent"
+            style={{ color: 'var(--accent)' }}
             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             🔄 Balapan Ulang
           </motion.button>
         )}
         <motion.button onClick={onPlayAgain}
-          className="px-6 py-3 rounded-xl font-bold font-sans"
-          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '.5px solid var(--border-color)' }}
+          className="px-6 py-3 rounded-xl font-bold font-sans glass-surface"
+          style={{ color: 'var(--text-primary)' }}
           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           Main Baru
         </motion.button>

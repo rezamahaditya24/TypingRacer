@@ -55,8 +55,8 @@ export default function AuthForm({ onLogin, onSignup, error, loading }: AuthForm
         )}
 
         <button type="submit" disabled={loading || !username || password.length < 4}
-          className="w-full p-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50"
-          style={{ background: 'var(--accent)', color: '#0d1117' }}>
+          className="w-full p-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 glass-accent"
+          style={{ color: 'var(--accent)' }}>
           {loading ? 'Memproses...' : mode === 'login' ? 'Masuk' : 'Daftar'}
         </button>
       </form>

@@ -81,20 +81,20 @@ export default function LandingView({ name, setName, selectedDino, setSelectedDi
         className="flex gap-3 flex-wrap justify-center"
       >
         <button onClick={onCreateRoom}
-          className="px-6 py-3 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--accent)', color: '#0d1117' }}>
+          className="px-6 py-3 rounded-lg text-sm font-medium glass-accent"
+          style={{ color: 'var(--accent)' }}>
           🏁 Buat Room
         </button>
 
         <button onClick={onOpenPublicRooms}
-          className="px-6 py-3 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '.5px solid var(--border-color)' }}>
+          className="px-6 py-3 rounded-lg text-sm font-medium glass-surface"
+          style={{ color: 'var(--text-primary)' }}>
           🌐 Room Publik
         </button>
 
         <button onClick={onPractice}
-          className="px-6 py-3 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '.5px solid var(--border-color)' }}>
+          className="px-6 py-3 rounded-lg text-sm font-medium glass-surface"
+          style={{ color: 'var(--text-primary)' }}>
           🎯 Latihan
         </button>
       </motion.div>
@@ -107,14 +107,14 @@ export default function LandingView({ name, setName, selectedDino, setSelectedDi
         className="flex gap-2 mt-3"
       >
         <button onClick={onOpenLeaderboard}
-          className="px-4 py-2 rounded-lg text-xs font-medium"
-          style={{ color: 'var(--text-muted)', border: '.5px solid var(--border-color)', background: 'transparent' }}>
+          className="px-4 py-2 rounded-lg text-xs font-medium glass"
+          style={{ color: 'var(--text-muted)' }}>
           🏆 Papan Skor
         </button>
         {user && (
           <button onClick={onOpenDashboard}
-            className="px-4 py-2 rounded-lg text-xs font-medium"
-            style={{ color: 'var(--teal)', border: '.5px solid var(--border-color)', background: 'transparent' }}>
+            className="px-4 py-2 rounded-lg text-xs font-medium glass"
+            style={{ color: 'var(--teal)' }}>
             📊 Dashboard
           </button>
         )}
@@ -176,8 +176,8 @@ export default function LandingView({ name, setName, selectedDino, setSelectedDi
             style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
             maxLength={6} placeholder="KODE ROOM" />
           <button onClick={onJoinRoom} disabled={joinCode.length < 4}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50"
-            style={{ background: 'var(--accent)', color: '#0d1117' }}>
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 glass-accent"
+            style={{ color: 'var(--accent)' }}>
             Gabung
           </button>
         </div>

@@ -27,8 +27,8 @@ export default function Lobby({ players, roomId, playerId, hostId, isHost, ws, o
           <div className="text-[10px] mb-2" style={{ color: 'var(--text-muted)' }}>KODE ROOM</div>
           <button
             onClick={() => navigator.clipboard.writeText(roomId).then(() => setCopied(true))}
-            className="font-mono text-2xl font-bold px-6 py-3 rounded-xl tracking-widest"
-            style={{ background: 'var(--bg-tertiary)', color: 'var(--accent)', border: '.5px solid var(--border-color)' }}
+            className="font-mono text-2xl font-bold px-6 py-3 rounded-xl tracking-widest glass-surface"
+            style={{ color: 'var(--accent)' }}
           >
             {roomId}
           </button>
@@ -92,8 +92,8 @@ export default function Lobby({ players, roomId, playerId, hostId, isHost, ws, o
       {/* Action buttons */}
       {isHost ? (
         <motion.button onClick={onStartRace} disabled={players.length < 1}
-          className="w-full max-w-sm py-4 rounded-xl font-bold font-sans text-lg transition-transform disabled:opacity-50"
-          style={{ background: 'var(--accent)', color: '#0d1117' }}
+          className="w-full max-w-sm py-4 rounded-xl font-bold font-sans text-lg transition-transform disabled:opacity-50 glass-accent"
+          style={{ color: 'var(--accent)' }}
           whileHover={players.length >= 1 ? { scale: 1.03 } : {}}
           whileTap={players.length >= 1 ? { scale: 0.97 } : {}}>
           🏁 Mulai Balapan!

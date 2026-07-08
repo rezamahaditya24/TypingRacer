@@ -50,8 +50,8 @@ export default function PublicRooms({ race, ws, onBack, onJoin }: {
                 </div>
               </div>
               <button onClick={() => onJoin(r.id)}
-                className="px-4 py-2 rounded-lg text-xs font-medium"
-                style={{ background: 'var(--accent)', color: '#0d1117' }}>
+                className="px-4 py-2 rounded-lg text-xs font-medium glass-accent"
+                style={{ color: 'var(--accent)' }}>
                 Gabung
               </button>
             </div>

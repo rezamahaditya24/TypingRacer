@@ -109,13 +109,13 @@ export default function PracticeView({ onBack, onCorrectKey, onWrongKey, languag
         </div>
         <div className="flex gap-3">
           <button onClick={() => { setText(getRandomQuoteByLanguage(language).text); setCharIndex(0); setErrors(new Set()); setStartTime(null); setFinished(false); setWpmHistory([]); }}
-            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105"
-            style={{ background: 'var(--teal)', color: '#0E1116' }}>
+            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105 glass-accent"
+            style={{ color: 'var(--accent)' }}>
             🔄 Coba Lagi
           </button>
           <button onClick={onBack}
-            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105"
-            style={{ background: 'var(--surface)', color: 'var(--text)' }}>
+            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105 glass-surface"
+            style={{ color: 'var(--text-primary)' }}>
             Kembali
           </button>
         </div>
