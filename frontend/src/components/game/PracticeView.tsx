@@ -90,32 +90,30 @@ export default function PracticeView({ onBack, onCorrectKey, onWrongKey, languag
   if (finished && results) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
-        <motion.h1 className="text-3xl font-bold font-sans" style={{ color: 'var(--success)' }}
+        <motion.h1 className="text-3xl font-bold font-display" style={{ color: 'var(--success)' }}
           initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
-          ✅ Latihan Selesai!
+          Latihan Selesai!
         </motion.h1>
-        <div className="flex gap-6 flex-wrap justify-center">
+        <div className="flex gap-4 flex-wrap justify-center">
           {[
-            { label: 'WPM', value: results.wpm, color: 'var(--teal)' },
+            { label: 'WPM', value: results.wpm, color: 'var(--accent)' },
             { label: 'Akurasi', value: `${results.accuracy}%`, color: 'var(--success)' },
-            { label: 'Waktu', value: `${(results.timeMs / 1000).toFixed(1)}s`, color: 'var(--amber)' },
-            { label: 'Puncak WPM', value: results.peakWpm, color: 'var(--amber)' },
+            { label: 'Waktu', value: `${(results.timeMs / 1000).toFixed(1)}s`, color: 'var(--accent-orange)' },
+            { label: 'Puncak WPM', value: results.peakWpm, color: 'var(--accent-yellow)' },
           ].map(s => (
-            <div key={s.label} className="text-center p-4 rounded-xl" style={{ background: 'var(--surface)' }}>
+            <div key={s.label} className="text-center p-4 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
               <div className="text-2xl font-bold font-mono" style={{ color: s.color }}>{s.value}</div>
-              <div className="text-xs font-sans mt-1" style={{ color: 'var(--muted)' }}>{s.label}</div>
+              <div className="text-xs font-sans font-medium mt-1" style={{ color: 'var(--text-muted)' }}>{s.label}</div>
             </div>
           ))}
         </div>
         <div className="flex gap-3">
           <button onClick={() => { setText(getRandomQuoteByLanguage(language).text); setCharIndex(0); setErrors(new Set()); setStartTime(null); setFinished(false); setWpmHistory([]); }}
-            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105 glass-accent"
-            style={{ color: 'var(--accent)' }}>
-            🔄 Coba Lagi
+            className="px-6 py-3 rounded-2xl font-bold font-display transition-all btn-accent">
+            Coba Lagi
           </button>
           <button onClick={onBack}
-            className="px-6 py-3 rounded-xl font-bold font-sans transition-transform hover:scale-105 glass-surface"
-            style={{ color: 'var(--text-primary)' }}>
+            className="px-6 py-3 rounded-2xl font-bold font-display transition-all btn-secondary">
             Kembali
           </button>
         </div>
@@ -126,20 +124,20 @@ export default function PracticeView({ onBack, onCorrectKey, onWrongKey, languag
   return (
     <div className="flex-1 flex flex-col p-4 gap-2 max-w-3xl mx-auto w-full">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold font-sans" style={{ color: 'var(--amber)' }}>🎯 Latihan Mengetik</h2>
-        <button onClick={onBack} className="text-sm font-sans underline" style={{ color: 'var(--muted)' }}>Keluar</button>
+        <h2 className="text-lg font-bold font-display" style={{ color: 'var(--accent-orange)' }}>Latihan Mengetik</h2>
+        <button onClick={onBack} className="text-sm font-sans font-medium underline" style={{ color: 'var(--text-muted)' }}>Keluar</button>
       </div>
 
-      <div className="flex items-center justify-center gap-4 py-1.5 text-xs font-mono" style={{ color: 'var(--muted)' }}>
-        <span style={{ color: 'var(--teal)' }}><span className="font-bold">{wpm}</span> WPM</span>
-        <span className="w-px h-3" style={{ background: 'var(--muted)', opacity: 0.3 }} />
+      <div className="flex items-center justify-center gap-3 py-2 px-4 rounded-2xl text-xs font-mono" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+        <span style={{ color: 'var(--accent)' }}><span className="font-bold">{wpm}</span> WPM</span>
+        <span className="w-px h-3" style={{ background: 'var(--text-muted)', opacity: 0.3 }} />
         <span style={{ color: 'var(--success)' }}><span className="font-bold">{accuracy}</span>%</span>
-        <span className="w-px h-3" style={{ background: 'var(--muted)', opacity: 0.3 }} />
-        <span><span className="font-bold" style={{ color: 'var(--text)' }}>{charIndex}</span><span>/{text.length}</span></span>
+        <span className="w-px h-3" style={{ background: 'var(--text-muted)', opacity: 0.3 }} />
+        <span><span className="font-bold" style={{ color: 'var(--text-primary)' }}>{charIndex}</span><span style={{ color: 'var(--text-muted)' }}>/{text.length}</span></span>
         {startTime && (
           <>
-            <span className="w-px h-3" style={{ background: 'var(--muted)', opacity: 0.3 }} />
-            <span style={{ color: 'var(--amber)' }}>{elapsed.toFixed(1)}s</span>
+            <span className="w-px h-3" style={{ background: 'var(--text-muted)', opacity: 0.3 }} />
+            <span style={{ color: 'var(--accent-orange)' }}>{elapsed.toFixed(1)}s</span>
           </>
         )}
       </div>

@@ -266,36 +266,36 @@ export default function Home() {
 
   return (
     <div className="flex-1 flex flex-col" style={{ background: 'var(--bg)' }}>
-      <nav className="flex items-center justify-between p-4 gap-2">
+      <nav className="flex items-center justify-between px-4 py-3 gap-2" style={{ borderBottom: '1px solid var(--border-color)' }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => { race.reset(); ws.disconnect(); setView('landing'); }} className="font-bold font-sans text-lg" style={{ color: 'var(--amber)' }}>
-            🦕 Dino Dash
+          <button onClick={() => { race.reset(); ws.disconnect(); setView('landing'); }} className="font-bold font-display text-lg" style={{ color: 'var(--accent)' }}>
+            Dino Dash
           </button>
           {view !== 'landing' && (
-            <button onClick={() => { race.reset(); ws.disconnect(); setView('landing'); }} className="text-sm font-sans" style={{ color: 'var(--text-muted)' }}>
+            <button onClick={() => { race.reset(); ws.disconnect(); setView('landing'); }} className="text-sm font-sans font-medium" style={{ color: 'var(--text-muted)' }}>
               ← Kembali
             </button>
           )}
         </div>
         <div className="flex items-center gap-3">
           {race.status === 'waiting' && race.roomId && (
-            <button onClick={() => navigator.clipboard.writeText(race.roomId || '')} className="text-xs font-mono underline" style={{ color: 'var(--teal)' }}>
+            <button onClick={() => navigator.clipboard.writeText(race.roomId || '')} className="text-[10px] font-mono font-medium px-2 py-1 rounded-lg" style={{ background: 'var(--bg-tertiary)', color: 'var(--accent)', border: '1px solid rgba(74,222,128,.2)' }}>
               📋 {race.roomId}
             </button>
           )}
           {user ? (
-            <span className="text-xs font-sans flex items-center gap-1" style={{ color: 'var(--teal)' }}>
-              👤 {user.username}
+            <span className="text-xs font-sans font-medium flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+              {user.username}
               <button onClick={handleLogout} className="underline" style={{ color: 'var(--text-muted)' }}>Keluar</button>
             </span>
           ) : (
-            <button onClick={() => setShowAuth(true)} className="text-xs font-sans underline" style={{ color: 'var(--text-muted)' }}>
+            <button onClick={() => setShowAuth(true)} className="text-xs font-sans font-medium underline" style={{ color: 'var(--text-muted)' }}>
               Masuk
             </button>
           )}
-          <button onClick={sound.toggle} className="text-lg">{sound.soundEnabled ? '🔊' : '🔇'}</button>
-          <button onClick={toggleMusic} className="text-lg" title={musicEnabled ? 'Matikan musik' : 'Putar musik'} style={{ opacity: musicEnabled ? 1 : 0.4 }}>🎵</button>
-          <button onClick={toggleTheme} className="text-lg">{isDark ? '☀️' : '🌙'}</button>
+          <button onClick={sound.toggle} className="text-base px-1.5 py-0.5 rounded-lg" style={{ background: 'var(--bg-tertiary)' }} title={sound.soundEnabled ? 'Matikan suara' : 'Hidupkan suara'}>{sound.soundEnabled ? '🔊' : '🔇'}</button>
+          <button onClick={toggleMusic} className="text-base px-1.5 py-0.5 rounded-lg" style={{ background: 'var(--bg-tertiary)', opacity: musicEnabled ? 1 : 0.4 }} title={musicEnabled ? 'Matikan musik' : 'Putar musik'}>🎵</button>
+          <button onClick={toggleTheme} className="text-base px-1.5 py-0.5 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>{isDark ? '☀️' : '🌙'}</button>
         </div>
       </nav>
 

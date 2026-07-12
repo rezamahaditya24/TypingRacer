@@ -13,14 +13,14 @@ interface SpeedHUDProps {
 export default function SpeedHUD({ wpm, accuracy, streakCount, pbDelta, maxWpm = 150 }: SpeedHUDProps) {
   const totalArcLen = 188.5;
   const wpmFill = totalArcLen * Math.min(wpm / maxWpm, 1);
-  const wpmColor = wpm < 30 ? 'var(--wrong)' : wpm < 70 ? '#fbbf24' : 'var(--correct)';
+  const wpmColor = wpm < 30 ? 'var(--wrong)' : wpm < 70 ? 'var(--accent-yellow)' : 'var(--correct)';
 
   const totalRingLen = 226.2;
   const accFill = totalRingLen * (accuracy / 100);
-  const accColor = accuracy < 80 ? 'var(--wrong)' : accuracy < 95 ? '#fbbf24' : 'var(--correct)';
+  const accColor = accuracy < 80 ? 'var(--wrong)' : accuracy < 95 ? 'var(--accent-yellow)' : 'var(--correct)';
 
   return (
-    <div className="flex items-center gap-4 flex-wrap">
+    <div className="flex items-center gap-4 flex-wrap justify-center">
       {/* Speedometer */}
       <div className="text-center">
         <svg width="140" height="86" viewBox="0 0 140 86">
@@ -33,15 +33,15 @@ export default function SpeedHUD({ wpm, accuracy, streakCount, pbDelta, maxWpm =
             animate={{ strokeDasharray: `${wpmFill} ${totalArcLen}` }}
             transition={{ type: 'spring', stiffness: 80, damping: 20 }}
           />
-          <text x="8" y="86" textAnchor="middle" fontSize="8" fill="var(--text-muted)" fontFamily="inherit">0</text>
-          <text x="70" y="12" textAnchor="middle" fontSize="8" fill="var(--text-muted)" fontFamily="inherit">75</text>
-          <text x="132" y="86" textAnchor="middle" fontSize="8" fill="var(--text-muted)" fontFamily="inherit">150</text>
-          <text x="70" y="62" textAnchor="middle" fontSize="24" fontWeight="500"
-            fill={wpmColor} fontFamily="monospace">{wpm}</text>
-          <text x="70" y="76" textAnchor="middle" fontSize="9"
-            fill="var(--text-muted)" fontFamily="inherit">WPM</text>
+          <text x="10" y="86" textAnchor="middle" fontSize="8" fill="var(--text-muted)" fontFamily="var(--font-mono)">0</text>
+          <text x="70" y="12" textAnchor="middle" fontSize="8" fill="var(--text-muted)" fontFamily="var(--font-mono)">75</text>
+          <text x="130" y="86" textAnchor="middle" fontSize="8" fill="var(--text-muted)" fontFamily="var(--font-mono)">150</text>
+          <text x="70" y="62" textAnchor="middle" fontSize="24" fontWeight="700"
+            fill={wpmColor} fontFamily="var(--font-mono)">{wpm}</text>
+          <text x="70" y="76" textAnchor="middle" fontSize="9" fontWeight="600"
+            fill="var(--text-muted)" fontFamily="var(--font-sans)">WPM</text>
         </svg>
-        <p className="text-[9px]" style={{ color: 'var(--text-muted)', marginTop: -2 }}>Kecepatan</p>
+        <p className="text-[9px] font-sans font-medium mt-1" style={{ color: 'var(--text-muted)' }}>Kecepatan</p>
       </div>
 
       {/* Accuracy ring */}
@@ -55,36 +55,36 @@ export default function SpeedHUD({ wpm, accuracy, streakCount, pbDelta, maxWpm =
             transition={{ type: 'spring', stiffness: 80, damping: 20 }}
             transform="rotate(-90 45 45)"
           />
-          <text x="45" y="41" textAnchor="middle" fontSize="15" fontWeight="500"
-            fill={accColor} fontFamily="monospace">{accuracy}%</text>
-          <text x="45" y="54" textAnchor="middle" fontSize="8"
-            fill="var(--text-muted)" fontFamily="inherit">akurasi</text>
+          <text x="45" y="41" textAnchor="middle" fontSize="15" fontWeight="700"
+            fill={accColor} fontFamily="var(--font-mono)">{accuracy}%</text>
+          <text x="45" y="54" textAnchor="middle" fontSize="8" fontWeight="600"
+            fill="var(--text-muted)" fontFamily="var(--font-sans)">akurasi</text>
         </svg>
-        <p className="text-[9px]" style={{ color: 'var(--text-muted)', marginTop: -2 }}>Akurasi</p>
+        <p className="text-[9px] font-sans font-medium mt-1" style={{ color: 'var(--text-muted)' }}>Akurasi</p>
       </div>
 
       {/* Streak + PB delta */}
       <div className="flex flex-col gap-2">
         {streakCount > 2 && (
           <motion.div
-            className="rounded-lg px-3 py-2 text-center"
-            style={{ background: 'var(--bg-tertiary)' }}
+            className="rounded-2xl px-4 py-2 text-center"
+            style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
           >
-            <div className="font-mono text-xl font-medium" style={{ color: '#fbbf24' }}>
+            <div className="font-mono text-xl font-bold" style={{ color: 'var(--accent-yellow)' }}>
               {streakCount}x
             </div>
-            <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-              kata benar berturut
+            <div className="text-[9px] font-sans font-medium" style={{ color: 'var(--text-muted)' }}>
+              kata benar
             </div>
           </motion.div>
         )}
 
         {pbDelta !== null && (
-          <div className="rounded-lg px-3 py-2" style={{ background: 'var(--bg-tertiary)' }}>
-            <div className="text-[9px] mb-1" style={{ color: 'var(--text-muted)' }}>vs Personal Best</div>
-            <div className="text-sm font-medium"
+          <div className="rounded-2xl px-4 py-2" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+            <div className="text-[9px] font-sans font-medium mb-1" style={{ color: 'var(--text-muted)' }}>vs Personal Best</div>
+            <div className="text-sm font-bold font-mono"
               style={{ color: pbDelta >= 0 ? 'var(--correct)' : 'var(--wrong)' }}>
               {pbDelta >= 0 ? '+' : ''}{pbDelta} WPM
             </div>
