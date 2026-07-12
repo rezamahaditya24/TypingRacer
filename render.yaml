@@ -3,7 +3,7 @@ services:
     name: dinodash-backend
     runtime: node
     repo: https://github.com/rezamahaditya24/TypingRacer
-    branch: ui-redesign
+    branch: main
     rootDir: backend
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -22,7 +22,7 @@ services:
     name: dinodash-frontend
     runtime: node
     repo: https://github.com/rezamahaditya24/TypingRacer
-    branch: ui-redesign
+    branch: main
     rootDir: frontend
     buildCommand: npm install && npm run build
     startCommand: npm start
