@@ -1,25 +1,23 @@
 import { DinoType } from './types';
 
-export const DINO_LIST: { type: DinoType; emoji: string; label: string }[] = [
-  { type: 't-rex', emoji: '🦖', label: 'T-Rex' },
-  { type: 'triceratops', emoji: '🦕', label: 'Triceratops' },
-  { type: 'raptor', emoji: '🦖', label: 'Raptor' },
-  { type: 'stegosaurus', emoji: '🦕', label: 'Stegosaurus' },
-  { type: 'brontosaurus', emoji: '🦕', label: 'Brontosaurus' },
+export const DINO_LIST: { type: DinoType; label: string; color: string }[] = [
+  { type: 't-rex', label: 'T-Rex', color: '#f97316' },
+  { type: 'triceratops', label: 'Triceratops', color: '#22d3ee' },
+  { type: 'raptor', label: 'Raptor', color: '#4ade80' },
+  { type: 'stegosaurus', label: 'Stegosaurus', color: '#fbbf24' },
+  { type: 'brontosaurus', label: 'Brontosaurus', color: '#a78bfa' },
 ];
 
 export const DINO_COLORS: Record<DinoType, string> = {
-  't-rex': '#FB923C',
-  'triceratops': '#2DD4BF',
-  'raptor': '#A3E635',
-  'stegosaurus': '#F87171',
-  'brontosaurus': '#A78BFA',
+  't-rex': '#f97316',
+  'triceratops': '#22d3ee',
+  'raptor': '#4ade80',
+  'stegosaurus': '#fbbf24',
+  'brontosaurus': '#a78bfa',
 };
 
-export const CAR_EMOJIS = ['🦖', '🦕', '🚗', '🚙', '🏎️', '🚕', '🚌', '🛻'];
-
 export function randomName(): string {
-  const a = ['Cepat', 'Garang', 'Lincah', 'Hebat', 'Tangguh', 'Galak', 'Pintar'];
-  const n = ['Dino', 'Rex', 'Saurus', 'Raptor', 'Tops', 'Don'];
+  const a = ['Cepat', 'Garang', 'Lincah', 'Hebat', 'Tangguh', 'Galak', 'Pintar', 'Besar', 'Kecil', 'Mungil'];
+  const n = ['Dino', 'Rex', 'Saurus', 'Raptor', 'Tops', 'Don', 'Pede', 'Kong', 'Rexy', 'Saur'];
   return `${a[Math.floor(Math.random() * a.length)]}${n[Math.floor(Math.random() * n.length)]}`;
 }
